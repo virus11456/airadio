@@ -39,11 +39,18 @@ export async function buildContext(userInput, opts = {}) {
     `天氣: ${weather}`,
   ].join('\n');
 
-  // ④ retrieved memory
+  // ④ retrieved memory: recent plays + recent user chat
   const recentPlays = state.recentPlays(opts.recentPlays ?? 10);
-  const memory = recentPlays.length
+  const playsLine = recentPlays.length
     ? recentPlays.map(p => `- ${p.title ?? '?'} / ${p.artist ?? '?'}`).join('\n')
     : '(尚無播放紀錄)';
+  const recentMsgs = state.recentMessages(opts.recentMessages ?? 6)
+    .filter(m => m.role === 'user')
+    .map(m => `- ${m.content}`)
+    .join('\n');
+  const memory = recentMsgs
+    ? `### 最近播放\n${playsLine}\n\n### 用戶最近說的話\n${recentMsgs}`
+    : `### 最近播放\n${playsLine}`;
 
   // ⑤ user input / tool result
   const input = userInput

@@ -24,14 +24,13 @@ export default async function chatRoutes(fastify) {
         return { ok: true, kind: 'cmd', action: r.action };
 
       case 'music':
-        // Hint the next refill — we just queue an explicit request.
-        // The DJ loop will pick this up at next refill cycle.
-        state.recordMessage('hint', `play_request: ${r.query}`);
+        // Inject as next-refill hint; DJ loop picks it up at next refill cycle.
+        dj.setNextHint(`用戶想聽：${r.query}`);
         return { ok: true, kind: 'music', query: r.query };
 
       case 'claude':
       default:
-        state.recordMessage('hint', `claude: ${r.input}`);
+        dj.setNextHint(`用戶說：${r.input}`);
         return { ok: true, kind: 'claude', input: r.input };
     }
   });
