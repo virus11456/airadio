@@ -12,6 +12,8 @@ import nextRoutes from './routes/next.js';
 import tasteRoutes from './routes/taste.js';
 import planRoutes from './routes/plan.js';
 import streamRoutes from './routes/stream.js';
+import lyricsRoutes from './routes/lyrics.js';
+import musicRoutes from './routes/music.js';
 
 import { djLoop } from './workers/dj.js';
 import { musicLoop } from './workers/music.js';
@@ -52,6 +54,8 @@ await app.register(nextRoutes);
 await app.register(tasteRoutes);
 await app.register(planRoutes);
 await app.register(streamRoutes);
+await app.register(lyricsRoutes);
+await app.register(musicRoutes);
 
 app.get('/api/health', async () => ({ ok: true, ts: Date.now() }));
 

@@ -1,4 +1,20 @@
-# 7x24 AI Radio · Probe Scripts
+# 7x24 AI Radio (Claudio)
+
+個人 24 小時 AI 電台。Claude Code 當大腦選歌、NCM 當曲庫、Fish Audio 配 TTS、Fastify 串 PWA。
+
+## 一鍵部署到 Ubuntu VPS
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/virus11456/airadio/claude/review-changes-0J6Es/deploy.sh | sudo bash
+```
+
+腳本會裝 Node 20、Docker、PM2、Claude CLI，起 NCM container，clone repo，互動式問你 API key，最後用 PM2 拉起服務。完成後打 `http://<vps-ip>:8080/`。
+
+可調整環境變數：`AIRADIO_BRANCH`、`AIRADIO_DIR`、`APP_PORT`、`NCM_PORT`、`TZ`。
+
+---
+
+## Probe Scripts
 
 施工前的兩支探針。確認環境再寫業務代碼，避免兩層 JSON 剝殼踩坑、NCM 版權空 url 卡關。
 

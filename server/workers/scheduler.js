@@ -29,12 +29,17 @@ function pulse(label) {
 }
 
 export function startScheduler() {
-  cron.schedule('0 7 * * *', generateDayPlan);
-  cron.schedule('0 9 * * *', () => pulse('morning-greeting'));
-  cron.schedule('0 * * * *', () => pulse('hourly-mood-check'));
-  cron.schedule('0 23 * * *', () => pulse('bedtime'));
+  // node-cron defaults to system TZ; pin to TZ env so plans fire at the
+  // user's wall-clock time regardless of host (e.g., UTC Docker host).
+  const tz = process.env.TZ || 'Asia/Taipei';
+  const opts = { timezone: tz };
 
-  // tick heartbeat once a minute
+  cron.schedule('0 7 * * *', generateDayPlan, opts);
+  cron.schedule('0 9 * * *', () => pulse('morning-greeting'), opts);
+  cron.schedule('0 * * * *', () => pulse('hourly-mood-check'), opts);
+  cron.schedule('0 23 * * *', () => pulse('bedtime'), opts);
+
+  // tick heartbeat once a minute (timezone irrelevant for every-minute)
   cron.schedule('* * * * *', () => state.beat('scheduler'));
   state.beat('scheduler');
 
@@ -42,5 +47,5 @@ export function startScheduler() {
   if (!state.getPlan(today())) {
     generateDayPlan().catch(() => {});
   }
-  console.log('[scheduler] started');
+  console.log(`[scheduler] started (tz=${tz})`);
 }
