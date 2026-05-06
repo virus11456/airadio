@@ -1,164 +1,74 @@
-#!/usr/bin/env node
-/**
- * probe-claude.js
- *
- * 探針：確認 `claude -p --output-format json` 在當前環境的輸出格式。
- *
- * 用途：在寫 server/core/claude.js 之前，先把實際的 stdout 結構搞清楚，
- * 避免後續 JSON.parse 兩層剝殼時踩坑。
- *
- * 跑法：
- *   node probe-claude.js
- *   node probe-claude.js "自訂 prompt"
- *
- * 退出碼：
- *   0  全部通過（外層 JSON 合法 + 內層 JSON 合法）
- *   1  外層 JSON 解析失敗
- *   2  內層 result/content/text 解析失敗
- *   3  claude CLI 找不到 / spawn 失敗
- *   4  claude 進程非零退出
- *   5  超時
- */
+// probe-claude.js
+// 目的：搞清楚 `claude -p --output-format json` 在你環境吐什麼
+// 用法：node probe-claude.js
 
-import { spawn } from 'node:child_process';
-import { performance } from 'node:perf_hooks';
+import { spawn } from 'child_process';
 
-const TIMEOUT_MS = 60_000;
+const PROMPT = '請只回我一個合法 JSON，內容是 {"hello":"world","time":"now"}，不要任何其他文字、不要 markdown code fence。';
 
-const SYSTEM = `你是一個只會回 JSON 的助手。
-規則：
-1. 永遠回合法 JSON，無 markdown 包裹
-2. 欄位固定：{ "say": string, "play": [{"query": string, "reason": string}], "reason": string, "segue": string }`;
+console.log('=== probe-claude.js ===');
+console.log('cwd:', process.cwd());
+console.log('ANTHROPIC_BASE_URL:', process.env.ANTHROPIC_BASE_URL || '(未設定，走官方)');
+console.log('---');
+console.log('送出 prompt:', PROMPT);
+console.log('---');
 
-const USER_INPUT = process.argv[2]
-  ?? '探針測試：請排兩首深夜爵士並說一句開場。';
-
-const PROMPT = `${SYSTEM}\n\n---\n\n${USER_INPUT}`;
-
-function log(label, data) {
-  console.log(`\n========== ${label} ==========`);
-  console.log(typeof data === 'string' ? data : JSON.stringify(data, null, 2));
-}
-
-function detectMarkdownFence(s) {
-  const fenced = /^```(?:json)?\s*([\s\S]*?)\s*```\s*$/m.exec(s.trim());
-  return fenced ? fenced[1] : null;
-}
-
-async function run() {
-  const args = ['-p', '--output-format', 'json'];
-
-  console.log(`[probe-claude] cmd: claude ${args.join(' ')}`);
-  console.log(`[probe-claude] ANTHROPIC_BASE_URL=${process.env.ANTHROPIC_BASE_URL || '(unset)'}`);
-  console.log(`[probe-claude] prompt bytes=${Buffer.byteLength(PROMPT)}`);
-
-  const t0 = performance.now();
-  let proc;
-  try {
-    proc = spawn('claude', args, {
-      env: { ...process.env },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-  } catch (e) {
-    log('SPAWN ERROR', e.message);
-    process.exit(3);
-  }
-
-  let stdout = '';
-  let stderr = '';
-  proc.stdout.on('data', (d) => { stdout += d.toString(); });
-  proc.stderr.on('data', (d) => { stderr += d.toString(); });
-
-  const timer = setTimeout(() => {
-    console.error('[probe-claude] timeout, killing');
-    proc.kill('SIGKILL');
-  }, TIMEOUT_MS);
-
-  proc.on('error', (e) => {
-    clearTimeout(timer);
-    log('PROC ERROR', e.message);
-    if (e.code === 'ENOENT') {
-      console.error('claude CLI 不在 PATH。執行 `which claude` 確認，或設定絕對路徑。');
-    }
-    process.exit(3);
-  });
-
-  proc.stdin.write(PROMPT);
-  proc.stdin.end();
-
-  const code = await new Promise((resolve) => proc.on('close', resolve));
-  clearTimeout(timer);
-
-  const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
-  console.log(`\n[probe-claude] exit=${code} elapsed=${elapsed}s`);
-  console.log(`[probe-claude] stdout bytes=${stdout.length} stderr bytes=${stderr.length}`);
-
-  if (stderr.trim()) log('STDERR', stderr);
-  log('STDOUT (raw)', stdout);
-
-  if (code !== 0) {
-    console.error(`[probe-claude] 非零退出碼 ${code}`);
-    process.exit(4);
-  }
-
-  // 外層解析
-  let outer;
-  try {
-    outer = JSON.parse(stdout);
-  } catch (e) {
-    log('OUTER PARSE FAIL', e.message);
-    console.error('外層 stdout 不是合法 JSON。可能 --output-format json 不支援，或多了 banner 文字。');
-    process.exit(1);
-  }
-  log('OUTER (parsed)', outer);
-  log('OUTER KEYS', Object.keys(outer));
-
-  // 找出可能的內容欄位
-  const candidates = ['result', 'content', 'text', 'output', 'response'];
-  const innerKey = candidates.find((k) => typeof outer[k] === 'string');
-  if (!innerKey) {
-    log('NO STRING FIELD', '在 result/content/text/output/response 都找不到字串欄位');
-    console.warn('內層欄位需要根據 OUTER KEYS 手動調整 claude.js');
-    process.exit(2);
-  }
-
-  const innerRaw = outer[innerKey];
-  console.log(`\n[probe-claude] inner field = "${innerKey}", bytes=${innerRaw.length}`);
-  log('INNER (raw)', innerRaw);
-
-  // 嘗試剝 markdown fence
-  const stripped = detectMarkdownFence(innerRaw);
-  if (stripped !== null) {
-    console.warn('[probe-claude] inner 被 ```json 包了，需要在 claude.js 加剝殼邏輯');
-    log('INNER (after strip fence)', stripped);
-  }
-
-  let inner;
-  try {
-    inner = JSON.parse(stripped ?? innerRaw);
-  } catch (e) {
-    log('INNER PARSE FAIL', e.message);
-    console.error('內層 JSON 解析失敗。模型沒乖乖回 JSON，需要強化 prompt 或寫容錯。');
-    process.exit(2);
-  }
-  log('INNER (parsed)', inner);
-
-  // 契約檢查
-  const contractKeys = ['say', 'play', 'reason', 'segue'];
-  const missing = contractKeys.filter((k) => !(k in inner));
-  if (missing.length) {
-    console.warn(`[probe-claude] 契約欄位缺失: ${missing.join(', ')}`);
-  } else {
-    console.log('[probe-claude] ✅ 契約欄位齊全 {say, play, reason, segue}');
-  }
-  if (Array.isArray(inner.play)) {
-    console.log(`[probe-claude] play[] 共 ${inner.play.length} 首`);
-  }
-
-  console.log('\n[probe-claude] DONE');
-}
-
-run().catch((e) => {
-  console.error('[probe-claude] uncaught:', e);
-  process.exit(5);
+const startedAt = Date.now();
+const proc = spawn('claude', ['-p', '--output-format', 'json'], {
+  env: process.env,
+  stdio: ['pipe', 'pipe', 'pipe']
 });
+
+let stdout = '';
+let stderr = '';
+
+proc.stdout.on('data', d => stdout += d.toString());
+proc.stderr.on('data', d => stderr += d.toString());
+
+proc.on('error', err => {
+  console.error('[spawn error]', err.message);
+  console.error('→ 確認 claude CLI 在 PATH 裡：which claude');
+  process.exit(1);
+});
+
+proc.on('close', code => {
+  const elapsed = ((Date.now() - startedAt) / 1000).toFixed(2);
+  console.log(`[exit code]: ${code}`);
+  console.log(`[elapsed]: ${elapsed}s`);
+  console.log('---');
+  console.log('=== STDERR (原樣) ===');
+  console.log(stderr || '(空)');
+  console.log('---');
+  console.log('=== STDOUT (原樣) ===');
+  console.log(stdout || '(空)');
+  console.log('---');
+  console.log('=== STDOUT 嘗試 JSON.parse 第一層 ===');
+  try {
+    const outer = JSON.parse(stdout);
+    console.log('外層欄位:', Object.keys(outer));
+    console.log(JSON.stringify(outer, null, 2));
+
+    // Claude Code 通常把回答塞在 .result 或 .content
+    const inner = outer.result ?? outer.content ?? outer.text ?? null;
+    if (inner) {
+      console.log('---');
+      console.log('=== 內層 (outer.result / .content / .text) ===');
+      console.log(inner);
+      console.log('---');
+      console.log('=== 嘗試把內層當 JSON 再 parse ===');
+      try {
+        const parsed = JSON.parse(inner);
+        console.log('✅ 內層是合法 JSON:', parsed);
+      } catch (e) {
+        console.log('❌ 內層不是純 JSON，可能被包了 markdown 或多了文字');
+        console.log('error:', e.message);
+      }
+    }
+  } catch (e) {
+    console.log('❌ 外層也不是 JSON，可能 --output-format json 沒生效');
+    console.log('error:', e.message);
+  }
+});
+
+proc.stdin.write(PROMPT);
+proc.stdin.end();
