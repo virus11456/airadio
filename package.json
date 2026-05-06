@@ -1,0 +1,23 @@
+{
+  "name": "airadio",
+  "version": "0.0.1",
+  "description": "7x24 personal AI radio station — Claude Code as the brain, NCM as the music source, Fish Audio for TTS.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "probe:claude": "node probe-claude.js",
+    "probe:ncm": "node probe-ncm.js"
+  },
+  "dependencies": {
+    "@fastify/static": "^7.0.4",
+    "@fastify/websocket": "^10.0.1",
+    "better-sqlite3": "^11.3.0",
+    "fastify": "^4.28.1",
+    "node-cron": "^3.0.3"
+  }
+}

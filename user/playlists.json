@@ -1,0 +1,19 @@
+{
+  "seed_songs": [
+    { "query": "竹內まりや 駅", "tags": ["city-pop", "rainy", "night"] },
+    { "query": "山下達郎 さよなら夏の日", "tags": ["city-pop", "summer"] },
+    { "query": "落日飛車 My Jinji", "tags": ["taiwan-indie", "city-pop"] },
+    { "query": "王菲 容易受傷的女人", "tags": ["cantopop-90s"] },
+    { "query": "張國榮 風繼續吹", "tags": ["cantopop-90s"] },
+    { "query": "告五人 愛人錯過", "tags": ["taiwan-indie"] },
+    { "query": "Night Tempo Plastic Love", "tags": ["future-funk", "city-pop"] }
+  ],
+  "fallback_when_offline": [
+    { "query": "Yiruma River Flows in You", "tags": ["piano", "ambient"] },
+    { "query": "Joe Hisaishi Summer", "tags": ["piano"] }
+  ],
+  "blocked": [
+    "抖音神曲",
+    "翻唱合輯"
+  ]
+}

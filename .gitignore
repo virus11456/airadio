@@ -1,0 +1,20 @@
+node_modules/
+.env
+.env.local
+
+# runtime artifacts
+data/state.db
+data/state.db-journal
+data/state.db-wal
+data/state.db-shm
+cache/tts/*
+!cache/tts/.gitkeep
+cache/music/*
+!cache/music/.gitkeep
+*.log
+logs/
+
+# editor / os
+.DS_Store
+.idea/
+.vscode/
