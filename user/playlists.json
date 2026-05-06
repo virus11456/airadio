@@ -1,19 +1,17 @@
 {
   "seed_songs": [
-    { "query": "竹內まりや 駅", "tags": ["city-pop", "rainy", "night"] },
-    { "query": "山下達郎 さよなら夏の日", "tags": ["city-pop", "summer"] },
-    { "query": "落日飛車 My Jinji", "tags": ["taiwan-indie", "city-pop"] },
-    { "query": "王菲 容易受傷的女人", "tags": ["cantopop-90s"] },
-    { "query": "張國榮 風繼續吹", "tags": ["cantopop-90s"] },
-    { "query": "告五人 愛人錯過", "tags": ["taiwan-indie"] },
-    { "query": "Night Tempo Plastic Love", "tags": ["future-funk", "city-pop"] }
+    { "query": "周杰倫 晴天", "tags": ["city-pop-feel", "mandopop", "verified-playable"] },
+    { "query": "周杰倫 告白氣球", "tags": ["mandopop", "verified-playable"] },
+    { "query": "蔡依林 不該", "tags": ["mandopop", "city-pop-feel", "verified-playable"] },
+    { "query": "鄵五人付貯明珠", "tags": ["mandopop", "verified-playable"] }
   ],
   "fallback_when_offline": [
-    { "query": "Yiruma River Flows in You", "tags": ["piano", "ambient"] },
-    { "query": "Joe Hisaishi Summer", "tags": ["piano"] }
+    { "query": "周杰倫 晴天", "tags": ["safe"] },
+    { "query": "蔡依林 不該", "tags": ["safe"] }
   ],
-  "blocked": [
-    "抖音神曲",
-    "翻唱合輯"
-  ]
+  "genre_hints": {
+    "city-pop": "如果要 city pop 風格，優先挑跨年代的簫語シティポップ走向、中文州州風。避免山下達郎、竹內まりや、大貫妙子 (網易雲未授權、無法播放)",
+    "avoid_locked": "在 NCM 上未授權的歌請勿推薦：竹內まりや、山下達郎、大貫妙子、那英、IU、YOASOBI、Adele、Coldplay、Linkin Park、aimer、張國榮、王菲、久石讓、Yiruma。"
+  },
+  "blocked": ["抖音神曲", "翻唱合輯"]
 }

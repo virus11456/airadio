@@ -3,134 +3,542 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0a0a0a" />
-  <title>Claudio · 7x24 AI Radio</title>
+  <meta name="theme-color" content="#000000" />
   <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" href="data:," />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=DotGothic16&display=swap" rel="stylesheet">
+  <title>AIRADIO · 8BIT FM</title>
   <style>
+    /* ============ 8-BIT THEME ============ */
     :root {
-      color-scheme: dark;
-      --bg: #0a0a0a;
-      --fg: #e8e8e8;
-      --muted: #888;
-      --accent: #ff8c42;
-      --panel: #141414;
-      --line: #1f1f1f;
+      --gb-darkest: #000000;   /* darkest green (text/borders) */
+      --gb-dark:    #0d0d18;   /* mid-dark green */
+      --gb-mid:     #1a1a2e;   /* mid-light green */
+      --gb-light:   #00ffd5;   /* lightest green (bg) */
+      --nes-red:    #ff0055;
+      --nes-yellow: #f6ff00;
+      --nes-blue:   #00d4ff;
+      --nes-magenta:#ff00ff;
+      --shadow:     0 4px 0 var(--gb-darkest);
     }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang TC", "Microsoft JhengHei", sans-serif; }
+    
+    @font-face {
+      font-family: 'Zpix';
+      src: url('https://cdn.jsdelivr.net/gh/SolidZORO/zpix-pixel-font/dist/Zpix.ttf') format('truetype');
+      font-display: swap;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+    html, body {
+      height: 100%;
+      background: var(--gb-darkest);
+      color: var(--gb-light);
+      font-family: 'VT323', 'Zpix', 'DotGothic16', 'Courier New', monospace;
+      font-size: 20px;
+      line-height: 1.3;
+      letter-spacing: 0.02em;
+      overflow-x: hidden;
+    }
+
+    /* CRT scanlines + vignette */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,255,213,0.08) 2px 3px),
+        radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.55) 100%);
+      pointer-events: none; z-index: 9999;
+      animation: flicker 6s steps(2) infinite;
+    }
+    @keyframes flicker { 0%,97% {opacity:1;} 98% {opacity:.9;} 100%{opacity:1;} }
+
+    h1, h2, h3, .pix { font-family: 'Press Start 2P', 'Zpix', monospace; letter-spacing: 0; }
+
+    /* ============ LAYOUT ============ */
     body { display: flex; flex-direction: column; }
+    header.bar {
+      background: var(--gb-mid);
+      color: var(--gb-darkest);
+      border-bottom: 4px solid var(--gb-darkest);
+      padding: 14px 18px;
+      display: flex; align-items: center; gap: 14px;
+      flex-wrap: wrap;
+    }
+    header.bar .logo {
+      font-family: 'Press Start 2P', 'Zpix', monospace;
+      font-size: 18px; line-height: 1;
+      padding: 6px 10px;
+      background: var(--gb-darkest);
+      color: var(--gb-light);
+      border: 3px solid var(--gb-darkest);
+      box-shadow: 4px 4px 0 var(--gb-dark);
+    }
+    header.bar .logo .blip { color: var(--nes-red); }
+    header.bar .live {
+      font-family: 'Press Start 2P', 'Zpix', monospace;
+      font-size: 11px; padding: 6px 10px;
+      background: var(--nes-red); color: #fff;
+      border: 3px solid var(--gb-darkest);
+      animation: blink 1.4s steps(2) infinite;
+    }
+    @keyframes blink { 0%,55%{opacity:1;} 56%,100%{opacity:.5;} }
+    header.bar .spacer { flex: 1; }
 
     nav {
-      display: flex; gap: 0; border-bottom: 1px solid var(--line);
-      background: var(--panel); position: sticky; top: 0; z-index: 10;
+      display: flex; gap: 0;
+      background: var(--gb-mid);
+      border-bottom: 4px solid var(--gb-darkest);
     }
     nav button {
-      flex: 1; background: none; color: var(--muted); border: none;
-      padding: 14px 8px; font-size: 14px; cursor: pointer;
-      border-bottom: 2px solid transparent;
+      flex: 1; appearance: none; cursor: pointer;
+      background: var(--gb-mid); color: var(--gb-darkest);
+      border: 0; border-right: 3px solid var(--gb-darkest);
+      padding: 14px 8px;
+      font-family: 'Press Start 2P', 'Zpix', monospace; font-size: 12px;
+      transition: none;
     }
-    nav button.active { color: var(--fg); border-bottom-color: var(--accent); }
+    nav button:last-child { border-right: 0; }
+    nav button:hover { background: var(--gb-light); }
+    nav button.active {
+      background: var(--gb-darkest); color: var(--nes-yellow);
+      box-shadow: inset 0 -4px 0 var(--nes-red);
+    }
 
-    main { flex: 1; overflow-y: auto; padding: 20px; }
-    .view { display: none; max-width: 720px; margin: 0 auto; }
+    main {
+      flex: 1; padding: 22px 16px 80px;
+      max-width: 760px; margin: 0 auto; width: 100%;
+    }
+    .view { display: none; }
     .view.active { display: block; }
 
-    /* Player */
+    /* ============ PLAYER ============ */
     .cover {
-      width: 100%; aspect-ratio: 1; background: linear-gradient(135deg, #2a1810, #0f0a07);
-      border-radius: 12px; display: flex; align-items: center; justify-content: center;
-      font-size: 96px; color: var(--accent); margin-bottom: 24px;
+      width: 100%; aspect-ratio: 1;
+      max-width: 360px; margin: 0 auto 18px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 110px; color: var(--gb-light);
+      background:
+        repeating-conic-gradient(var(--gb-dark) 0 25%, var(--gb-darkest) 0 50%) 50% / 28px 28px;
+      border: 5px solid var(--gb-light);
+      box-shadow: 0 0 0 4px var(--gb-darkest), 8px 8px 0 var(--gb-darkest);
+      text-shadow: 4px 4px 0 var(--gb-darkest);
+      position: relative;
     }
-    .now { text-align: center; margin-bottom: 16px; }
-    .now .title { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
-    .now .artist { color: var(--muted); font-size: 14px; }
+    .cover::before {
+      content: ''; position: absolute; inset: 6px;
+      border: 2px dashed var(--gb-mid); pointer-events: none;
+    }
+
+    .now { text-align: center; margin-bottom: 14px; }
+    .now .title {
+      font-family: 'Press Start 2P', 'Zpix', monospace;
+      font-size: 16px; line-height: 1.5;
+      color: var(--nes-yellow);
+      text-shadow: 3px 3px 0 var(--gb-darkest);
+      margin-bottom: 8px; word-break: break-word;
+    }
+    .now .artist {
+      font-size: 22px; color: var(--gb-mid);
+      letter-spacing: 0.12em;
+    }
+    .now .artist::before { content: '> '; }
+
     .dj-line {
-      background: var(--panel); border-left: 3px solid var(--accent);
-      padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;
-      font-size: 14px; line-height: 1.6; color: #ddd;
-      min-height: 24px;
+      background: var(--gb-darkest);
+      color: var(--gb-light);
+      border: 4px solid var(--gb-light);
+      box-shadow: 6px 6px 0 var(--gb-dark);
+      padding: 14px 16px; margin: 18px 0;
+      font-size: 19px; line-height: 1.5;
+      min-height: 64px;
+      position: relative;
     }
-    .dj-line:empty::before { content: "（DJ 還在沉澱中）"; color: var(--muted); }
+    .dj-line::before {
+      content: 'DJ.MSG'; position: absolute; top: -14px; left: 12px;
+      font-family: 'Press Start 2P', 'Zpix', monospace; font-size: 10px;
+      background: var(--nes-yellow); color: var(--gb-darkest);
+      border: 3px solid var(--gb-light); padding: 3px 6px;
+    }
+    .dj-line:empty::after {
+      content: '... DJ.STANDBY ...';
+      color: var(--gb-mid); font-family: 'Press Start 2P', 'Zpix', monospace; font-size: 11px;
+    }
 
     .controls {
-      display: flex; justify-content: center; gap: 16px; margin: 16px 0;
+      display: flex; justify-content: center; gap: 12px; margin: 18px 0;
     }
     .controls button {
-      background: var(--panel); color: var(--fg); border: 1px solid var(--line);
-      border-radius: 999px; padding: 10px 20px; font-size: 14px; cursor: pointer;
+      appearance: none; cursor: pointer;
+      font-family: 'Press Start 2P', 'Zpix', monospace; font-size: 14px;
+      padding: 14px 18px; min-width: 64px;
+      background: var(--gb-mid); color: var(--gb-darkest);
+      border: 4px solid var(--gb-darkest);
+      box-shadow: var(--shadow);
     }
-    .controls button:hover { border-color: var(--accent); }
+    .controls button:hover { background: var(--nes-yellow); }
+    .controls button:active {
+      transform: translate(4px, 4px); box-shadow: 0 0 0 var(--gb-darkest);
+    }
+    #btn-toggle { background: var(--nes-red); color: #fff; min-width: 110px; }
+    #btn-toggle:hover { background: var(--nes-magenta); }
 
-    .queue { margin-top: 24px; }
-    .queue h3 { font-size: 13px; color: var(--muted); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.06em; }
-    .queue-item {
-      padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px;
-      display: flex; gap: 8px;
-    }
-    .queue-item .kind { color: var(--muted); width: 60px; flex-shrink: 0; }
-
-    /* Chat */
-    .chat {
-      display: flex; gap: 8px; margin-top: 16px;
-    }
+    .chat { display: flex; gap: 8px; margin: 18px 0; }
     .chat input {
-      flex: 1; background: var(--panel); color: var(--fg); border: 1px solid var(--line);
-      border-radius: 8px; padding: 10px 12px; font-size: 14px;
+      flex: 1;
+      background: var(--gb-darkest); color: var(--gb-light);
+      border: 4px solid var(--gb-light); padding: 12px 14px;
+      font-family: inherit; font-size: 19px;
     }
+    .chat input:focus { outline: 0; border-color: var(--nes-yellow); }
+    .chat input::placeholder { color: var(--gb-dark); }
     .chat button {
-      background: var(--accent); color: #000; border: none;
-      border-radius: 8px; padding: 10px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+      cursor: pointer;
+      background: var(--nes-blue); color: #fff;
+      border: 4px solid var(--gb-darkest);
+      box-shadow: var(--shadow);
+      padding: 0 18px;
+      font-family: 'Press Start 2P', 'Zpix', monospace; font-size: 12px;
+    }
+    .chat button:active { transform: translate(4px,4px); box-shadow: 0 0 0; }
+
+    .queue { margin-top: 22px; }
+    .queue h3 {
+      font-size: 14px; color: var(--nes-yellow); padding: 6px 10px;
+      background: var(--gb-dark); border: 3px solid var(--gb-light);
+      display: inline-block; margin-bottom: 8px;
+    }
+    .queue h3::before { content: '> '; color: var(--nes-red); }
+    .queue-item {
+      padding: 10px 12px;
+      border: 3px solid var(--gb-dark);
+      border-left: 8px solid var(--nes-yellow);
+      background: rgba(0,0,0,0.4);
+      margin-bottom: 6px;
+      font-size: 19px; display: flex; gap: 10px;
+    }
+    .queue-item .kind {
+      color: var(--nes-magenta); width: 60px; flex-shrink: 0;
+      font-family: 'Press Start 2P', 'Zpix', monospace; font-size: 10px;
+      align-self: center;
     }
 
-    /* Profile */
-    .field { margin-bottom: 20px; }
-    .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+    /* ============ PROFILE ============ */
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: inline-block;
+      font-family: 'Press Start 2P', 'Zpix', monospace; font-size: 11px;
+      background: var(--nes-magenta); color: var(--gb-darkest);
+      border: 3px solid var(--gb-darkest); padding: 5px 8px; margin-bottom: 4px;
+    }
     .field textarea {
-      width: 100%; min-height: 200px; background: var(--panel); color: var(--fg);
-      border: 1px solid var(--line); border-radius: 8px; padding: 12px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.5;
+      width: 100%; min-height: 110px;
+      background: var(--gb-darkest); color: var(--gb-light);
+      border: 4px solid var(--gb-light); padding: 12px;
+      font-family: 'VT323','Zpix','DotGothic16',monospace; font-size: 19px; line-height: 1.4;
       resize: vertical;
     }
-    .field button {
-      background: var(--accent); color: #000; border: none;
-      border-radius: 8px; padding: 10px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
-      margin-top: 8px;
+    .field textarea:focus { outline: 0; border-color: var(--nes-yellow); }
+    #profile-save {
+      cursor: pointer;
+      font-family: 'Press Start 2P', 'Zpix', monospace; font-size: 13px;
+      padding: 14px 22px;
+      background: var(--nes-yellow); color: var(--gb-darkest);
+      border: 4px solid var(--gb-darkest);
+      box-shadow: var(--shadow);
+    }
+    #profile-save:active { transform: translate(4px,4px); box-shadow: 0 0 0; }
+
+    /* ============ SETTINGS ============ */
+    .row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px; margin-bottom: 12px;
+      border: 3px solid var(--gb-dark);
+      background: rgba(0,0,0,0.4);
+    }
+    .row > label {
+      font-family: 'Press Start 2P', 'Zpix', monospace; font-size: 11px;
+      color: var(--nes-yellow); min-width: 70px;
+    }
+    .ctl { flex: 1; }
+    .ctl input[type=range] {
+      width: 100%; appearance: none; height: 14px;
+      background: var(--gb-darkest); border: 3px solid var(--gb-light);
+    }
+    .ctl input[type=range]::-webkit-slider-thumb {
+      appearance: none; width: 18px; height: 22px;
+      background: var(--nes-red); border: 3px solid var(--gb-darkest);
+    }
+    .ctl input[type=range]::-moz-range-thumb {
+      width: 18px; height: 22px;
+      background: var(--nes-red); border: 3px solid var(--gb-darkest);
+    }
+    .ctl input[type=checkbox] {
+      appearance: none; width: 28px; height: 28px;
+      background: var(--gb-darkest); border: 3px solid var(--gb-light);
+      cursor: pointer; position: relative;
+    }
+    .ctl input[type=checkbox]:checked { background: var(--nes-yellow); }
+    .ctl input[type=checkbox]:checked::after {
+      content: 'X'; position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Press Start 2P', 'Zpix', monospace; font-size: 14px;
+      color: var(--gb-darkest);
+    }
+    .ctl select {
+      background: var(--gb-darkest); color: var(--gb-light);
+      border: 3px solid var(--gb-light); padding: 8px 10px;
+      font-family: inherit; font-size: 18px;
     }
 
-    /* Settings */
-    .row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
-    .row label { font-size: 14px; }
-    .row .ctl input[type=range] { width: 200px; }
-    .status { font-size: 12px; color: var(--muted); margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .status {
+      margin-top: 18px; padding: 10px;
+      font-family: 'Press Start 2P', 'Zpix', monospace; font-size: 11px;
+      color: var(--gb-mid); text-align: center;
+      border-top: 3px dashed var(--gb-dark);
+    }
+    .status::before { content: '◆ '; color: var(--nes-red); }
+
+    
+    .clockbox {
+      text-align: center;
+      max-width: 560px;
+      margin: 0 auto 22px;
+      padding: 18px 16px;
+      border: 4px solid var(--gb-light);
+      background: var(--gb-darkest);
+      box-shadow: 6px 6px 0 var(--gb-dark);
+      position: relative;
+    }
+    .clockbox::before {
+      content: 'CLOCK.SYS';
+      position: absolute; top: -14px; left: 14px;
+      font-family: 'Press Start 2P', 'Zpix', monospace; font-size: 10px;
+      background: var(--nes-magenta); color: var(--gb-darkest);
+      border: 3px solid var(--gb-light); padding: 3px 7px;
+    }
+    .clockbox .time {
+      font-family: 'Press Start 2P', 'Zpix', monospace;
+      font-size: 64px; line-height: 1;
+      color: var(--nes-yellow);
+      text-shadow: 4px 4px 0 var(--gb-darkest), -3px -3px 0 var(--nes-magenta);
+      letter-spacing: 0.04em;
+    }
+    .clockbox .colon { animation: tick 1s steps(2) infinite; }
+    @keyframes tick { 0%,50%{opacity:1;} 51%,100%{opacity:.25;} }
+    .clockbox .meta {
+      margin-top: 14px;
+      display: flex; gap: 8px; justify-content: center;
+      flex-wrap: wrap;
+      font-family: 'Press Start 2P', 'Zpix', monospace; font-size: 10px;
+    }
+    .clockbox .meta .date {
+      color: var(--gb-light);
+      border: 2px solid var(--gb-mid); padding: 4px 7px;
+    }
+    .clockbox .meta .tz {
+      color: var(--nes-blue);
+      border: 2px solid var(--nes-blue); padding: 4px 7px;
+    }
+    .clockbox .meta .city {
+      background: var(--nes-yellow); color: var(--gb-darkest);
+      border: 2px solid var(--gb-darkest); padding: 4px 7px;
+    }
+    @media (max-width: 480px) {
+      .clockbox .time { font-size: 40px; }
+      .clockbox .meta { font-size: 9px; }
+    }
+
+    
+    /* ============ CYBERPUNK NEON GLOW ============ */
+    body { background: #000; }
+    body::after {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+      background:
+        linear-gradient(rgba(0,255,213,0.05) 1px, transparent 1px) 0 0/48px 48px,
+        linear-gradient(90deg, rgba(255,0,255,0.04) 1px, transparent 1px) 0 0/48px 48px,
+        radial-gradient(ellipse at 50% 120%, rgba(255,0,255,0.20), transparent 60%);
+    }
+    main, header.bar, nav, footer.ticker { position: relative; z-index: 1; }
+    header.bar { background: linear-gradient(180deg, #0a0a18 0%, #050510 100%); border-bottom-color: var(--nes-magenta); box-shadow: 0 0 24px rgba(255,0,255,0.4); }
+    header.bar .logo { background: #000; color: var(--nes-yellow); border-color: var(--nes-yellow); text-shadow: 0 0 8px var(--nes-yellow), 0 0 16px var(--nes-magenta); box-shadow: 0 0 14px var(--nes-yellow), 4px 4px 0 var(--gb-dark); }
+    header.bar .logo .blip { color: var(--nes-magenta); text-shadow: 0 0 10px var(--nes-magenta); }
+    header.bar .live { background: var(--nes-red); border-color: var(--nes-red); box-shadow: 0 0 16px var(--nes-red), 0 0 4px #fff inset; }
+    nav { background: #050510; border-bottom-color: var(--nes-magenta); }
+    nav button { background: #050510; color: var(--gb-light); border-right-color: var(--gb-dark); }
+    nav button:hover { background: #0d0d20; color: var(--nes-yellow); text-shadow: 0 0 6px var(--nes-yellow); }
+    nav button.active { background: #000; color: var(--nes-yellow); box-shadow: inset 0 -4px 0 var(--nes-magenta), 0 0 18px rgba(246,255,0,.4); text-shadow: 0 0 8px var(--nes-yellow); }
+
+    .cover { border-color: var(--nes-magenta) !important; box-shadow: 0 0 28px var(--nes-magenta), 0 0 0 4px #000, 8px 8px 0 var(--nes-magenta); color: var(--nes-yellow); text-shadow: 0 0 12px var(--nes-yellow), 4px 4px 0 #000; }
+    .cover::before { border-color: var(--nes-blue) !important; }
+
+    .clockbox { border-color: var(--nes-blue) !important; box-shadow: 0 0 22px rgba(0,212,255,.45), 6px 6px 0 var(--gb-dark); }
+    .clockbox::before { background: var(--nes-magenta); border-color: var(--nes-blue); box-shadow: 0 0 10px var(--nes-magenta); }
+    .clockbox .time { color: var(--nes-yellow); text-shadow: 0 0 14px var(--nes-yellow), 0 0 28px var(--nes-magenta), 4px 4px 0 #000; }
+    .clockbox .meta .city { background: var(--nes-yellow); box-shadow: 0 0 10px var(--nes-yellow); }
+
+    .now .title { color: var(--nes-yellow); text-shadow: 0 0 12px var(--nes-yellow), 3px 3px 0 #000; }
+    .now .artist { color: var(--gb-light); text-shadow: 0 0 8px var(--gb-light); }
+
+    .dj-line { border-color: var(--gb-light) !important; box-shadow: 0 0 16px rgba(0,255,213,.4), 6px 6px 0 var(--gb-dark); color: var(--gb-light); }
+    .dj-line::before { background: var(--nes-yellow); border-color: var(--gb-light); box-shadow: 0 0 12px var(--nes-yellow); }
+
+    .controls button { background: #000; color: var(--gb-light); border-color: var(--gb-light); box-shadow: 0 0 8px rgba(0,255,213,.6), 0 4px 0 var(--gb-dark); }
+    .controls button:hover { background: #0d0d20; color: var(--nes-yellow); border-color: var(--nes-yellow); box-shadow: 0 0 14px var(--nes-yellow), 0 4px 0 var(--gb-dark); text-shadow: 0 0 8px var(--nes-yellow); }
+    #btn-toggle { background: var(--nes-red); color: #fff; border-color: var(--nes-red); box-shadow: 0 0 18px var(--nes-red), 0 4px 0 #000; }
+    #btn-toggle:hover { background: var(--nes-magenta); border-color: var(--nes-magenta); box-shadow: 0 0 22px var(--nes-magenta), 0 4px 0 #000; }
+
+    .chat input { background: #000; border-color: var(--gb-light); box-shadow: 0 0 10px rgba(0,255,213,.3); }
+    .chat input:focus { border-color: var(--nes-yellow); box-shadow: 0 0 14px var(--nes-yellow); }
+    .chat button { background: var(--nes-blue); color: #000; border-color: var(--nes-blue); box-shadow: 0 0 16px var(--nes-blue), 0 4px 0 #000; }
+
+    .queue h3 { background: #000; color: var(--nes-yellow); border-color: var(--nes-yellow); box-shadow: 0 0 12px var(--nes-yellow); text-shadow: 0 0 8px var(--nes-yellow); }
+    .queue-item { background: rgba(255,0,255,0.05); border-color: var(--gb-dark); border-left-color: var(--nes-yellow); }
+    .queue-item .kind { color: var(--nes-magenta); text-shadow: 0 0 6px var(--nes-magenta); }
+
+    .field label { background: var(--nes-magenta); color: #000; border-color: #000; box-shadow: 0 0 10px var(--nes-magenta); }
+    .field textarea { background: #000; border-color: var(--gb-light); box-shadow: 0 0 10px rgba(0,255,213,.3); color: var(--gb-light); }
+    .field textarea:focus { border-color: var(--nes-yellow); box-shadow: 0 0 14px var(--nes-yellow); }
+    #profile-save { background: var(--nes-yellow); color: #000; box-shadow: 0 0 18px var(--nes-yellow), 0 4px 0 #000; }
+
+    .row { background: rgba(0,255,213,0.04); border-color: var(--gb-dark); }
+    .row > label { color: var(--nes-yellow); text-shadow: 0 0 6px var(--nes-yellow); }
+    .ctl input[type=range] { border-color: var(--nes-blue); box-shadow: 0 0 8px var(--nes-blue); }
+    .ctl input[type=range]::-webkit-slider-thumb { background: var(--nes-red); border-color: #000; box-shadow: 0 0 10px var(--nes-red); }
+    .ctl input[type=checkbox] { border-color: var(--gb-light); box-shadow: 0 0 8px rgba(0,255,213,.5); }
+    .ctl input[type=checkbox]:checked { background: var(--nes-yellow); box-shadow: 0 0 12px var(--nes-yellow); }
+    .ctl select { background: #000; border-color: var(--gb-light); color: var(--gb-light); box-shadow: 0 0 8px rgba(0,255,213,.3); }
+
+    .status { color: var(--gb-light); text-shadow: 0 0 6px var(--gb-light); border-top-color: var(--nes-magenta); }
+    .status::before { color: var(--nes-magenta); text-shadow: 0 0 8px var(--nes-magenta); }
+
+    footer.ticker { background: #000; border-top-color: var(--nes-magenta); box-shadow: 0 0 18px rgba(255,0,255,.5); }
+    footer.ticker .left { color: var(--nes-yellow); text-shadow: 0 0 6px var(--nes-yellow); }
+    footer.ticker .right { color: var(--nes-magenta); text-shadow: 0 0 6px var(--nes-magenta); }
+    footer.ticker > span:nth-child(2) { color: var(--gb-light); text-shadow: 0 0 6px var(--gb-light); }
+
+    ::-webkit-scrollbar-thumb { background: var(--nes-magenta); border-color: #000; box-shadow: 0 0 10px var(--nes-magenta); }
+
+
+
+    /* Make nav buttons feel obviously clickable */
+    nav button { cursor: pointer; transition: background 80ms; }
+    nav button:not(.active):hover { background: var(--nes-magenta); color: var(--gb-darkest); }
+
+    /* Chat send feedback toast */
+    #chat-toast {
+      position: fixed; left: 50%; top: 12%;
+      transform: translateX(-50%);
+      background: var(--nes-magenta); color: #000;
+      border: 4px solid var(--gb-darkest);
+      box-shadow: 0 0 18px var(--nes-magenta), 4px 4px 0 #000;
+      font-family: 'Press Start 2P', 'Zpix', monospace; font-size: 11px;
+      padding: 12px 18px; z-index: 200;
+      pointer-events: none;
+      opacity: 0; transition: opacity 200ms;
+    }
+    #chat-toast.show { opacity: 1; }
+    .chat input.sending { background: rgba(255,0,255,0.15); }
+
+
+    /* Tap-to-tune overlay (autoplay-policy fallback) */
+    #tap-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 999;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      animation: tapPulse 1s infinite alternate;
+    }
+    @keyframes tapPulse { 0%{background:rgba(0,0,0,0.85);} 100%{background:rgba(0,0,0,0.95);} }
+    #tap-overlay .tap-inner {
+      font-family: 'Press Start 2P', 'Zpix', monospace;
+      font-size: 22px; color: var(--nes-yellow);
+      text-align: center; line-height: 1.6;
+      text-shadow: 0 0 12px var(--nes-yellow), 0 0 28px var(--nes-magenta);
+      border: 4px solid var(--nes-magenta);
+      box-shadow: 0 0 28px var(--nes-magenta), 8px 8px 0 #000;
+      padding: 28px 36px;
+      background: #000;
+    }
+    #tap-overlay .tap-sub {
+      display: inline-block; margin-top: 12px;
+      font-size: 11px; color: var(--gb-light);
+      text-shadow: 0 0 8px var(--gb-light);
+    }
+
+    /* === Pac-Man canvas fills the cover === */
+    .cover { font-size: 0; padding: 0; overflow: hidden; }
+    .cover #pacman { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+
+    /* ============ FOOTER (FM TICKER) ============ */
+    footer.ticker {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--gb-darkest); color: var(--gb-light);
+      border-top: 4px solid var(--gb-light);
+      font-family: 'Press Start 2P', 'Zpix', monospace; font-size: 10px;
+      padding: 8px 14px;
+      display: flex; justify-content: space-between; gap: 14px;
+      z-index: 50;
+    }
+    footer.ticker .left { color: var(--nes-yellow); }
+    footer.ticker .right { color: var(--nes-magenta); }
+
+    /* ============ SCROLLBAR (chunky 8-bit) ============ */
+    ::-webkit-scrollbar { width: 14px; }
+    ::-webkit-scrollbar-track { background: var(--gb-darkest); }
+    ::-webkit-scrollbar-thumb { background: var(--gb-mid); border: 3px solid var(--gb-darkest); }
+
+    @media (max-width: 480px) {
+      header.bar .logo { font-size: 14px; }
+      .now .title { font-size: 12px; }
+      .controls button { font-size: 11px; padding: 12px 12px; min-width: 0; }
+      #btn-toggle { min-width: 80px; }
+      nav button { font-size: 10px; padding: 12px 4px; }
+      .cover { font-size: 80px; }
+    }
   </style>
 </head>
 <body>
+  <header class="bar">
+    <div class="logo">A<span class="blip">I</span>RADIO.FM</div>
+    <div class="live">● ON AIR</div>
+    <div class="spacer"></div>
+  </header>
+
   <nav>
-    <button data-view="player" class="active">Player</button>
-    <button data-view="profile">Profile</button>
-    <button data-view="settings">Settings</button>
+    <button data-view="player" class="active">[A] PLAYER</button>
+    <button data-view="profile">[B] PROFILE</button>
+    <button data-view="settings">[☆] CFG</button>
   </nav>
 
   <main>
     <section class="view active" id="view-player">
-      <div class="cover" id="cover">♪</div>
+      <div class="clockbox">
+        <div class="time" id="clock-time">--<span class="colon">:</span>--</div>
+        <div class="meta">
+          <span class="date" id="clock-date">--- --- ---</span>
+          <span class="tz" id="clock-tz">UTC</span>
+          <span class="city" id="clock-city">UNKNOWN</span>
+        </div>
+      </div>
+
+      <div class="cover" id="cover"><canvas id="pacman" width="320" height="320"></canvas></div>
       <div class="now">
         <div class="title" id="now-title">—</div>
         <div class="artist" id="now-artist"></div>
       </div>
       <div class="dj-line" id="dj-line"></div>
       <div class="controls">
-        <button id="btn-prev" title="重播">↶</button>
-        <button id="btn-toggle">▶︎</button>
-        <button id="btn-skip">⏭</button>
+        <button id="btn-toggle">[♪] LIVE</button>
       </div>
       <div class="chat">
-        <input id="chat-input" placeholder="跟 Claudio 說點什麼…（例：放點 city pop）" />
-        <button id="chat-send">送</button>
+        <input id="chat-input" placeholder="&gt; 跟 DJ 說點什麼… (例: 放點 city pop)" />
+        <button id="chat-send">SEND</button>
       </div>
       <div class="queue">
-        <h3>下一首</h3>
+        <h3>NEXT UP</h3>
         <div id="queue-list"></div>
       </div>
       <audio id="audio" preload="auto"></audio>
@@ -138,45 +546,239 @@
 
     <section class="view" id="view-profile">
       <div class="field">
-        <label>taste.md（音樂品味）</label>
+        <label>TASTE.MD 音樂品味</label>
         <textarea id="profile-taste"></textarea>
       </div>
       <div class="field">
-        <label>routines.md（作息）</label>
+        <label>ROUTINES.MD 作息</label>
         <textarea id="profile-routines"></textarea>
       </div>
       <div class="field">
-        <label>mood-rules.md（心情規則）</label>
+        <label>MOOD-RULES.MD 心情規則</label>
         <textarea id="profile-mood"></textarea>
       </div>
       <div class="field">
-        <label>playlists.json（種子歌單）</label>
+        <label>PLAYLISTS.JSON 種子歌單</label>
         <textarea id="profile-playlists"></textarea>
       </div>
-      <button id="profile-save">儲存</button>
+      <button id="profile-save">[✓] SAVE</button>
     </section>
 
     <section class="view" id="view-settings">
       <div class="row">
-        <label>音量</label>
+        <label>VOLUME</label>
         <div class="ctl"><input type="range" id="set-volume" min="0" max="100" value="80" /></div>
       </div>
       <div class="row">
-        <label>DJ 播報</label>
+        <label>DJ.SAY</label>
         <div class="ctl"><input type="checkbox" id="set-dj" checked /></div>
       </div>
       <div class="row">
-        <label>聲線</label>
-        <div class="ctl">
-          <select id="set-voice">
-            <option value="default">預設</option>
-          </select>
-        </div>
+        <label>VOICE</label>
+        <div class="ctl"><select id="set-voice"><option value="default">DEFAULT</option></select></div>
       </div>
-      <div class="status" id="status">connecting…</div>
+      <div class="status" id="status">CONNECTING...</div>
     </section>
   </main>
 
+  <footer class="ticker">
+    <span class="left">[ AIRADIO.FM v0.0.1 ]</span>
+    <span>POWERED BY MINIMAX-M2</span>
+    <span class="right">PRESS START</span>
+  </footer>
+
+    <script>
+    // Clock + timezone + city display (no API needed; pure client-side)
+    (function(){
+      var tz='UTC';
+      try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch(_){}
+      var city = (tz.split('/').pop() || 'UNKNOWN').replace(/_/g,' ').toUpperCase();
+      var $t=document.getElementById('clock-time');
+      var $d=document.getElementById('clock-date');
+      var $z=document.getElementById('clock-tz');
+      var $c=document.getElementById('clock-city');
+      if($z) $z.textContent = tz.toUpperCase();
+      if($c) $c.textContent = city;
+      var W=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+      var M=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+      function pad(n){ return (n<10?'0':'')+n; }
+      function tick(){
+        var n=new Date();
+        if($t) $t.innerHTML = pad(n.getHours())+'<span class="colon">:</span>'+pad(n.getMinutes());
+        if($d) $d.textContent = W[n.getDay()]+' '+pad(n.getDate())+' '+M[n.getMonth()]+' '+n.getFullYear();
+      }
+      tick(); setInterval(tick, 1000);
+    })();
+  </script>
+  <script>
+    // Audio Spectrum Visualizer + Synthwave grid background.
+    // Uses Web Audio AnalyserNode on the <audio> element. Falls back to
+    // pseudo-random animated bars when AnalyserNode fails (CORS / unsupported).
+    (function(){
+      var c = document.getElementById('pacman');
+      if (!c) return;
+      var ctx = c.getContext('2d');
+      var W = c.width, H = c.height;
+      var audio = document.getElementById('audio');
+      var analyser = null, dataArr = null, audioCtx = null;
+
+      function setupAnalyser(){
+        if (analyser) return true;
+        try {
+          var AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return false;
+          audioCtx = new AC();
+          var src = audioCtx.createMediaElementSource(audio);
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 64;          // 32 frequency bins
+          analyser.smoothingTimeConstant = 0.78;
+          src.connect(analyser);
+          analyser.connect(audioCtx.destination);
+          dataArr = new Uint8Array(analyser.frequencyBinCount);
+          return true;
+        } catch (e) {
+          console.warn('analyser setup failed:', e.message);
+          analyser = null;
+          return false;
+        }
+      }
+      // First user gesture or play() unlocks the AudioContext on Chrome.
+      audio.addEventListener('play', function(){
+        if (!analyser) setupAnalyser();
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      });
+
+      var BARS = 12;
+      var fake = new Float32Array(BARS);   // fallback values
+      var phase = 0;
+
+      function readSpectrum(){
+        if (analyser && dataArr) {
+          analyser.getByteFrequencyData(dataArr);
+          // Map 32 bins → BARS (group adjacent bins, weighted to lows for visual punch)
+          var out = new Float32Array(BARS);
+          for (var i = 0; i < BARS; i++) {
+            var lo = Math.floor(i / BARS * 24);
+            var hi = Math.floor((i+1) / BARS * 24);
+            var sum = 0, n = 0;
+            for (var j = lo; j < hi; j++) { sum += dataArr[j]; n++; }
+            out[i] = (n ? sum/n : 0) / 255;
+          }
+          return out;
+        }
+        // Fallback: pseudo-random gentle waves
+        phase += 0.06;
+        var paused = audio.paused;
+        for (var k = 0; k < BARS; k++) {
+          var v = paused ? 0.05
+            : 0.45 + 0.35*Math.sin(phase*1.3 + k*0.7) + 0.15*Math.sin(phase*2.1 + k*1.4);
+          fake[k] = Math.max(0, Math.min(1, v));
+        }
+        return fake;
+      }
+
+      // === Background: synthwave perspective grid + sun ===
+      var horizon = H * 0.42;
+      function drawGrid(t){
+        ctx.fillStyle = '#0a0014';
+        ctx.fillRect(0, 0, W, H);
+        // distant glow
+        var grad = ctx.createLinearGradient(0, horizon-30, 0, horizon+30);
+        grad.addColorStop(0,   'rgba(255,0,255,0.0)');
+        grad.addColorStop(0.5, 'rgba(255,0,255,0.55)');
+        grad.addColorStop(1,   'rgba(255,0,255,0.0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, horizon-30, W, 60);
+        // sun: half circle above horizon, with horizontal cuts
+        var sunY = horizon, sunR = H*0.18;
+        ctx.save();
+        ctx.beginPath(); ctx.arc(W/2, sunY, sunR, Math.PI, 2*Math.PI); ctx.clip();
+        var sg = ctx.createLinearGradient(0, sunY-sunR, 0, sunY);
+        sg.addColorStop(0, '#ffd400');
+        sg.addColorStop(1, '#ff0055');
+        ctx.fillStyle = sg;
+        ctx.fillRect(W/2-sunR, sunY-sunR, sunR*2, sunR);
+        // horizontal strips
+        ctx.fillStyle = '#0a0014';
+        for (var y = sunY - sunR + 14; y < sunY; y += 12) ctx.fillRect(W/2-sunR, y, sunR*2, 4);
+        ctx.restore();
+        // perspective grid below horizon
+        ctx.strokeStyle = 'rgba(0,212,255,0.55)';
+        ctx.lineWidth = 1;
+        // Vertical lines converging to vanishing point at (W/2, horizon)
+        for (var x = -8; x <= 8; x++) {
+          ctx.beginPath();
+          var bx = W/2 + (x * W*0.12);
+          ctx.moveTo(W/2, horizon);
+          ctx.lineTo(bx, H);
+          ctx.stroke();
+        }
+        // Horizontal lines (animated, scrolling toward viewer)
+        var rows = 12;
+        for (var r = 0; r < rows; r++) {
+          var prog = ((r + (t * 0.0008) % 1) % 1);
+          var y = horizon + (H - horizon) * (prog * prog);
+          var alpha = 0.15 + prog * 0.45;
+          ctx.strokeStyle = 'rgba(0,212,255,' + alpha + ')';
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+      }
+
+      // === Foreground: chunky neon spectrum bars ===
+      function drawBars(spectrum){
+        var pad = W * 0.06;
+        var availW = W - pad*2;
+        var gap = 4;
+        var bw = (availW - gap*(BARS-1)) / BARS;
+        var maxH = H * 0.55;
+        var baseY = H * 0.92;
+        for (var i = 0; i < BARS; i++) {
+          var v = spectrum[i];
+          var bh = Math.max(4, v * maxH);
+          var x = pad + i*(bw+gap);
+          var y = baseY - bh;
+          // Color gradient: cyan → magenta → yellow based on frequency
+          var hue = i / BARS;
+          var color1, color2;
+          if (hue < 0.5) { color1 = '#00d4ff'; color2 = '#ff00ff'; }
+          else           { color1 = '#ff00ff'; color2 = '#ffd400'; }
+          // Stacked pixel rectangles for chunky look
+          var seg = 8;
+          for (var k = 0; k < bh; k += seg) {
+            var lit = (bh - k) / bh;
+            ctx.fillStyle = lit > 0.66 ? color2 : (lit > 0.33 ? color1 : '#00d4ff');
+            ctx.globalAlpha = 0.6 + 0.4 * lit;
+            ctx.fillRect(x, baseY - k - seg + 2, bw, seg - 2);
+          }
+          ctx.globalAlpha = 1;
+          // Bottom glow line
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(x, baseY - 2, bw, 2);
+        }
+        // Reflection (faint, mirrored, alpha-fading)
+        ctx.save();
+        ctx.scale(1, -1);
+        ctx.translate(0, -H);
+        ctx.globalAlpha = 0.18;
+        for (var i2 = 0; i2 < BARS; i2++) {
+          var v2 = spectrum[i2];
+          var bh2 = Math.max(4, v2 * maxH);
+          var x2 = pad + i2*(bw+gap);
+          ctx.fillStyle = '#ff00ff';
+          ctx.fillRect(x2, H - baseY, bw, bh2 * 0.5);
+        }
+        ctx.restore();
+      }
+
+      function frame(t){
+        drawGrid(t);
+        drawBars(readSpectrum());
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    })();
+  </script>
   <script src="/app.js" type="module"></script>
+  <div id="chat-toast">✓ 訊息已送 · DJ 在下個循環応</div>
 </body>
 </html>

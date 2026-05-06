@@ -46,6 +46,17 @@ await app.register(staticPlugin, {
   decorateReply: false,
 });
 
+// Suno library served at /audio/suno/<id>.mp3
+const sunoDir = path.join(ROOT, 'cache/suno-library');
+if (fs.existsSync(sunoDir)) {
+  await app.register(staticPlugin, {
+    root: sunoDir,
+    prefix: '/audio/suno/',
+    decorateReply: false,
+  });
+  app.log.info(`suno library mounted at /audio/suno/ (${fs.readdirSync(sunoDir).length} files)`);
+}
+
 await app.register(chatRoutes);
 await app.register(nowRoutes);
 await app.register(nextRoutes);

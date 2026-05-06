@@ -1,15 +1,20 @@
-// Claude Code adapter. Spawns `claude -p --output-format json`, parses
-// the two-layer JSON response, validates the contract.
+// MiniMax adapter (drop-in replacement for the original Claude CLI adapter).
+// Same exports: callClaude, localFallback, validateContract.
+// Contract (returned object): { say, play: [{query, reason}], reason, segue }
 //
-// Contract (inner JSON): { say, play: [{query, reason}], reason, segue }
-//
-// NOTE: the exact shape of the *outer* JSON depends on your claude CLI version.
-// Run `node probe-claude.js` first; if `result` isn't the inner field, adjust
-// INNER_FIELDS below.
-import { spawn } from 'node:child_process';
+// Env vars:
+//   MINIMAX_API_KEY       (required)
+//   MINIMAX_MODEL         default: MiniMax-M2
+//   MINIMAX_BASE_URL      default: https://api.minimaxi.com
+//   MINIMAX_TIMEOUT_MS    default: 60000
+//   MINIMAX_TEMPERATURE   default: 0.7
+//   MINIMAX_MAX_TOKENS    default: 1024
 
-const CLAUDE_BIN = process.env.CLAUDE_BIN || 'claude';
-const TIMEOUT_MS = Number(process.env.CLAUDE_TIMEOUT_MS || 60_000);
+const BASE_URL   = (process.env.MINIMAX_BASE_URL || 'https://api.minimaxi.com').replace(/\/+$/, '');
+const MODEL      = process.env.MINIMAX_MODEL || 'MiniMax-M2';
+const TIMEOUT_MS = Number(process.env.MINIMAX_TIMEOUT_MS || 60_000);
+const TEMPERATURE= Number(process.env.MINIMAX_TEMPERATURE || 0.7);
+const MAX_TOKENS = Number(process.env.MINIMAX_MAX_TOKENS || 2048);
 const INNER_FIELDS = ['result', 'content', 'text', 'output', 'response'];
 
 function stripFence(s) {
@@ -18,81 +23,113 @@ function stripFence(s) {
   return m ? m[1] : s;
 }
 
-function pickInner(outer) {
-  for (const k of INNER_FIELDS) {
-    if (typeof outer[k] === 'string') return outer[k];
-    if (outer[k] && typeof outer[k] === 'object') return outer[k];
+function tryParseInner(content) {
+  if (typeof content !== 'string') return null;
+  // Try direct JSON parse after fence strip
+  try { return JSON.parse(stripFence(content)); } catch (_) {}
+  // Fallback: extract first {...} balanced block
+  const start = content.indexOf('{');
+  const end   = content.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    try { return JSON.parse(content.slice(start, end + 1)); } catch (_) {}
   }
   return null;
 }
 
 export async function callClaude({ system, user, model, signal } = {}) {
-  const args = ['-p', '--output-format', 'json'];
-  if (model) args.push('--model', model);
+  const apiKey = process.env.MINIMAX_API_KEY;
+  if (!apiKey) throw new Error('MINIMAX_API_KEY not set');
 
-  return await new Promise((resolve, reject) => {
-    let proc;
-    try {
-      proc = spawn(CLAUDE_BIN, args, { env: process.env, stdio: ['pipe', 'pipe', 'pipe'] });
-    } catch (e) {
-      return reject(e);
-    }
+  const messages = [];
+  if (system) messages.push({ role: 'system', content: String(system) });
+  messages.push({ role: 'user', content: String(user || '') });
 
-    let stdout = '';
-    let stderr = '';
-    proc.stdout.on('data', d => { stdout += d.toString(); });
-    proc.stderr.on('data', d => { stderr += d.toString(); });
+  const body = {
+    model: model || MODEL,
+    messages,
+    temperature: TEMPERATURE,
+    max_tokens: MAX_TOKENS,
+    stream: false,
+  };
 
-    const timer = setTimeout(() => {
-      proc.kill('SIGKILL');
-      reject(new Error('claude timeout'));
-    }, TIMEOUT_MS);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  if (signal) signal.addEventListener('abort', () => ctrl.abort(), { once: true });
 
-    if (signal) signal.addEventListener('abort', () => proc.kill('SIGKILL'), { once: true });
-
-    proc.on('error', e => { clearTimeout(timer); reject(e); });
-
-    proc.on('close', code => {
-      clearTimeout(timer);
-      if (code !== 0) {
-        return reject(new Error(`claude exit ${code}: ${stderr.slice(0, 300)}`));
-      }
-      try {
-        const outer = JSON.parse(stdout);
-        const innerRaw = pickInner(outer);
-        if (innerRaw == null) {
-          return reject(new Error(`no inner field in ${Object.keys(outer).join(',')}`));
-        }
-        const inner = typeof innerRaw === 'string'
-          ? JSON.parse(stripFence(innerRaw))
-          : innerRaw;
-        resolve(inner);
-      } catch (e) {
-        reject(new Error(`parse failed: ${e.message}; stdout head=${stdout.slice(0, 200)}`));
-      }
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}/v1/text/chatcompletion_v2`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
     });
+  } catch (e) {
+    clearTimeout(timer);
+    throw new Error(`minimax fetch failed: ${e.message || e}`);
+  }
+  clearTimeout(timer);
 
-    const prompt = system ? `${system}\n\n---\n\n${user || ''}` : (user || '');
-    proc.stdin.write(prompt);
-    proc.stdin.end();
-  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`minimax http ${res.status}: ${txt.slice(0, 300)}`);
+  }
+
+  let json;
+  try { json = await res.json(); } catch (e) {
+    throw new Error(`minimax response not JSON: ${e.message}`);
+  }
+
+  // Check business-layer status (MiniMax China returns base_resp.status_code !== 0 on error)
+  const status = json.base_resp && json.base_resp.status_code;
+  if (status !== undefined && status !== 0) {
+    throw new Error(`minimax base_resp ${status}: ${json.base_resp.status_msg || ''}`);
+  }
+
+  const choice = json.choices && json.choices[0];
+  const message = choice && choice.message;
+  let content = message && message.content;
+  // M2 reasoning model: when answer truncated by max_tokens, content may be
+  // empty and the JSON ends up in reasoning_content instead.
+  if ((!content || typeof content !== 'string' || !content.trim()) && message && message.reasoning_content) {
+    content = message.reasoning_content;
+  }
+  if (!content || typeof content !== 'string') {
+    // Try INNER_FIELDS at top level just in case
+    for (const k of INNER_FIELDS) {
+      if (typeof json[k] === 'string') {
+        const inner = tryParseInner(json[k]);
+        if (inner) return inner;
+      }
+    }
+    throw new Error(`minimax: no content in response keys=${Object.keys(json).join(',')}`);
+  }
+
+  const inner = tryParseInner(content);
+  if (!inner) {
+    throw new Error(`minimax: cannot parse inner JSON; head=${content.slice(0, 200)}`);
+  }
+  return inner;
 }
 
-// Fallback used when CLI is missing or upstream is failing. Keeps the radio
-// alive by serving a deterministic plan derived from local seeds.
+// Fallback used when the LLM is unreachable. Keeps the radio alive
+// by serving a deterministic plan derived from local seeds.
 export function localFallback({ recentPlays = [], hint = '' } = {}) {
   const seeds = [
-    { query: '竹內まりや 駅', reason: 'fallback city pop' },
-    { query: '山下達郎 さよなら夏の日', reason: 'fallback' },
-    { query: '落日飛車 My Jinji', reason: 'fallback indie' },
-    { query: 'Yiruma River Flows in You', reason: 'fallback piano' },
+    { query: '周杰倫 晴天', reason: 'fallback verified-playable' },
+    { query: '蔡依林 不該', reason: 'fallback verified-playable' },
+    { query: '周杰倫 告白氣球', reason: 'fallback verified-playable' },
+    { query: '鄵五人付貯明珠', reason: 'fallback verified-playable' },
   ];
   const seenIds = new Set(recentPlays.map(p => p.song_id));
   const pick = seeds.filter(s => !seenIds.has(s.query)).slice(0, 2);
   return {
     say: hint ? `${hint}，先放兩首墊著。` : '先放兩首墊著，等大腦回神。',
     play: pick.length ? pick : seeds.slice(0, 2),
-    reason: 'fallback plan (claude unreachable)',
+    reason: 'fallback plan (minimax unreachable)',
     segue: '',
   };
 }

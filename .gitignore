@@ -3,6 +3,7 @@ node_modules/
 .env.local
 
 # runtime artifacts
+data/
 data/state.db
 data/state.db-journal
 data/state.db-wal
@@ -11,8 +12,14 @@ cache/tts/*
 !cache/tts/.gitkeep
 cache/music/*
 !cache/music/.gitkeep
+cache/suno-library/*
+!cache/suno-library/.gitkeep
 *.log
 logs/
+
+# backups
+*.bak
+*.orig
 
 # editor / os
 .DS_Store

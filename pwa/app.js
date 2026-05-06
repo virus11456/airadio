@@ -20,22 +20,47 @@ document.querySelectorAll('nav button').forEach(btn => {
 let djEnabled = true;
 let currentItem = null;
 
+// --- Autoplay overlay helper (browser autoplay policy) ---
+function showTapOverlay() {
+  let ov = document.getElementById('tap-overlay');
+  if (ov) return;
+  ov = document.createElement('div');
+  ov.id = 'tap-overlay';
+  ov.innerHTML = '<div class="tap-inner">&gt; TAP TO TUNE IN<br><span class="tap-sub">[ AIRADIO.FM ]</span></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', () => {
+    audio.muted = false;
+    tryPlay();
+    ov.remove();
+  });
+}
+function tryPlay() {
+  return audio.play().catch(err => {
+    if (err && (err.name === 'NotAllowedError' || /interact|gesture|user/i.test(err.message || ''))) {
+      showTapOverlay();
+    } else {
+      console.warn('audio play failed', err);
+    }
+  });
+}
+
+
 function setNow(item) {
   currentItem = item;
   if (!item) return;
   if (item.kind === 'music') {
     $('now-title').textContent = item.title || '—';
     $('now-artist').textContent = item.artist || '';
-    $('cover').textContent = '♪';
+    // keep Pac-Man canvas alive (do not overwrite cover)
     if (item.src) {
       audio.src = item.src;
-      audio.play().catch(e => console.warn('audio play failed', e));
+      tryPlay();
     }
   } else if (item.kind === 'dj') {
-    $('dj-line').textContent = item.say || '';
+    if (item.say && item.say.trim()) $('dj-line').textContent = item.say;
     if (item.src && djEnabled) {
       audio.src = item.src.startsWith('/') ? item.src : `/audio/tts/${item.src.split('/').pop()}`;
-      audio.play().catch(() => {});
+      tryPlay();
     }
   }
 }
@@ -58,25 +83,10 @@ function escapeHtml(s) {
 }
 
 // --- Controls ---
-$('btn-toggle').addEventListener('click', async () => {
-  if (audio.paused) {
-    audio.play().catch(() => {});
-    await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: '繼續' }) });
-    $('btn-toggle').textContent = '⏸';
-  } else {
-    audio.pause();
-    await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: '暫停' }) });
-    $('btn-toggle').textContent = '▶︎';
-  }
-});
-
-$('btn-skip').addEventListener('click', async () => {
-  await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: '下一首' }) });
-});
-
-$('btn-prev').addEventListener('click', () => {
-  audio.currentTime = 0;
-  audio.play().catch(() => {});
+$('btn-toggle').addEventListener('click', () => {
+  const a = $('audio');
+  a.muted = !a.muted;
+  $('btn-toggle').textContent = a.muted ? '[X] MUTED' : '[♪] LIVE';
 });
 
 // --- Chat ---
@@ -86,13 +96,25 @@ $('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendCh
 async function sendChat() {
   const text = $('chat-input').value.trim();
   if (!text) return;
-  $('chat-input').value = '';
-  await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
-  });
+  const inp = $('chat-input');
+  inp.classList.add('sending');
+  try {
+    const r = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (!r.ok) throw new Error('http ' + r.status);
+    inp.value = '';
+    const t = $('chat-toast');
+    if (t) { t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000); }
+  } catch (e) {
+    alert('送信失敗: ' + e.message);
+  } finally {
+    inp.classList.remove('sending');
+  }
 }
+
 
 // --- Profile ---
 async function loadProfile() {
@@ -152,11 +174,11 @@ function handleEvent(msg) {
   switch (type) {
     case 'now-playing': setNow(payload); break;
     case 'queue-update': setQueue(payload.queue || []); break;
-    case 'dj-saying': $('dj-line').textContent = payload.say || ''; break;
+    case 'dj-saying': if (payload.say && payload.say.trim()) $('dj-line').textContent = payload.say; break;
     case 'plan-updated': console.log('plan updated'); break;
     case 'cmd':
       if (payload.action === 'pause') { audio.pause(); $('btn-toggle').textContent = '▶︎'; }
-      if (payload.action === 'resume') { audio.play().catch(() => {}); $('btn-toggle').textContent = '⏸'; }
+      if (payload.action === 'resume') { tryPlay(); $('btn-toggle').textContent = '⏸'; }
       break;
     case 'hello': status.textContent = `connected · ${new Date(payload.ts).toLocaleTimeString()}`; break;
   }

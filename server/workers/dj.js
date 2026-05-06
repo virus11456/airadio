@@ -32,7 +32,9 @@ async function refill(hint = '') {
   let plan;
   try {
     const ctx = await buildContext(hint || '排下兩三首歌，照我品味與當前時段。');
+    state.beat('dj');
     const inner = await callClaude({ system: ctx.system, user: ctx.user });
+    state.beat('dj');
     const v = validateContract(inner);
     if (!v.ok) throw new Error(`contract: ${v.errors.join(', ')}`);
     plan = inner;
@@ -44,6 +46,7 @@ async function refill(hint = '') {
   // 1) DJ talk segment first (if any)
   if (plan.say && plan.say.trim()) {
     let ttsPath = null;
+    state.beat('dj');
     try { ttsPath = await synthesize(plan.say); }
     catch (e) { console.warn('[dj] tts failed:', e.message); }
     queue.push({
