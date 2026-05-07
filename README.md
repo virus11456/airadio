@@ -107,30 +107,27 @@
 - [x] 250ms 防 spam cooldown、最多 80 顆同時飄
 - [x] 用 normalised 0..1 座標，不同 viewport 大小都對齊
 
-### Claudio 像素 DJ × 真錄音室
-中間那塊是 Claudio 本人坐在自己的錄音室裡 — 冷色暗牆 + 吸音棉 + 觀察窗 + 監聽喇叭 + 暖光打她身上的對比。
+### Claudio 廣播室（手繪像素圖 + CSS overlay 動畫）
+中間那塊是用戶提供的 1254×1254 像素藝術 PNG (`pwa/booth-bg.png`)。整張圖直接當 `background-size: cover` + `image-rendering: pixelated`，把 SVG 自畫的 Claudio / 麥 / 喇叭 / ON AIR 全拆掉。動的部分是 CSS 絕對定位的小色塊覆蓋在原圖上面：
 
-| 元素 | 表現 | 行為 |
+| 元素 | 觸發 | 動畫 |
 |---|---|---|
-| 🟦 **錄音室牆面** | 深 navy/teal 漸層 + 鑽石吸音棉 pattern (CSS gradients) + 邊緣 vignette | 靜態，永遠在那 |
-| 💡 **暖光聚光** | 50% 78% 位置 radial 暖光 | 把 Claudio 的暖膚色從冷牆襯出來 |
-| 👧 **Claudio** | SVG 像素半身、黑 bob 頭、大眼睛+虹膜+睫毛+高光、粉腮紅、小微笑 | 5.2s 眨眼；DJ 講話時嘴一張一合 (0.5s steps)；音樂播放時頭上下微抖 (0.7s)；mute 停 |
-| 🎧 **耳機** | 黑色 over-ear + 紅 LED | 永遠戴著 |
-| 🎤 **麥克風 + Pop filter** | mesh head 麥 + 前面一片暗 mesh 圓盤 | DJ 講話時 ON AIR 招牌閃紅 |
-| 🔴 **ON AIR 招牌** | 紅底像素字（左上）| DJ 講話時亮起 + 閃爍 |
-| 🪟 **控制室觀察窗** | 暗 teal 玻璃 + 後面 mixing board 剪影（knob 排 + fader strips）+ 暖光漏出 + 三色 LED 表頭 | 靜態 |
-| 🔊 **監聽喇叭** ×2 | 黑箱體 + 圓 woofer + dust cap + 綠色待機 LED | 靜態，左右各一 |
-| 🖼️ **AI cover 相框** | 紅圈邊框（右側牆）| 顯示當前播放封面，DJ 段保留最後一張 |
-| 📌 **聽眾便條紙** | 3 張黃色 sticky note + 紅 OK 戳 | Claudio 正在唸的那張放大 + 發黃光 |
-| 💬 **語言泡泡** | 紙質對話框（Claudio 頭頂）+ 4 行截斷 | DJ 講話時冒出，顯示她剛剛說的那段 |
+| 🟥 **ON AIR 招牌** | DJ 講話時 (`.booth.on-air`) | 紅光 radial pulse `mix-blend: screen`，1.1s 週期 |
+| 👁 **Claudio 眼睛** | 永遠 (`.booth.blinking`) | 兩塊膚色矩形 0.3 秒蓋住眼睛，5.2s 週期 |
+| 👄 **Claudio 嘴** | DJ 講話時 (`.booth.talking`) | 暗色橢圓蓋住微笑、0.46s steps 開合 |
+| 🐈 **貓眼睛** | 永遠 | 兩個咖啡色小塊 7.3s 週期眨眼（尾巴留靜態 — 動畫版會多一條詭異的尾巴）|
+| ⭐ **窗戶星星** ×4 | 永遠 | 白色小圓點，staggered 3s twinkle |
+| 🟨 **窗戶城市燈** ×4 | 永遠 | 黃色小方塊隨機閃爍（3.8/5.0/4.2/6.0s 不同週期） |
+| 🟢 **BEAT MODE LCD** | 永遠 | 綠光 radial 脈動，2.4s 呼吸 |
+| 💬 **語言泡泡** | DJ 講話時 | 紙質對話框（Claudio 頭頂）顯示 say 內容、4 行截斷 |
 
-實作：
-- `.booth` 元素，CSS class `.on-air` / `.dawn|.day|.dusk|.night` toggle
-- `.claudio` SVG 用 `shape-rendering: crispEdges`、整個角色一個 SVG 內含 multiple state 群組（眼睛開/閉、嘴開/合）用 CSS opacity animation 切換
-- `setStage(item)`：toggle `.talking` / `.bobbing` / `.on-air`，更新 bubble，呼叫 `refreshPinLetters(item.repliedTo)`
-- 便條紙輪詢 `/api/mail/recent` 25 秒一次
-- 時段每 5 分鐘 re-evaluate（跨 dawn → day 邊界自動切色）
+技術：
+- 單一 `.booth` 元素，CSS class 控制狀態（`.blinking` 永遠、`.on-air` `.talking` 跟著 DJ）
+- 所有動畫覆蓋層用 `%` 定位，跟著背景圖 scale，不會跑版
+- `setStage(item)` toggle 對應 class
+- 切日夜（未來功能）：放兩張 `booth-bg-day.png` / `booth-bg-night.png`，用 `[data-time="day|night"]` selector 切 `background-image`
 - Heart Rain canvas、reaction bar、tap hint 仍在最上層獨立運作
+
 
 ### 聽眾來信 + DJ 回信（Claudio 真的會點名你）
 - [x] PWA 輸入框語意：「寄信給老 C」（不再是 chat）

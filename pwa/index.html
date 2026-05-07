@@ -293,22 +293,6 @@
       50%      { opacity: 0.15; }
     }
 
-    /* —— Cat tail flick (small orange rect rotating from base) —— */
-    .booth .cat-tail {
-      position: absolute;
-      top: 80%; left: 2.5%;
-      width: 2.5%; height: 11%;
-      background: #C46B26;
-      border-left: 2px solid #8A4218;
-      transform-origin: 50% 100%;
-      transform: rotate(0deg);
-      animation: cat-tail-flick 5.4s ease-in-out infinite;
-      pointer-events: none;
-      z-index: 4;
-      opacity: 0.95;
-    }
-    @keyframes cat-tail-flick {
-      0%, 60%, 100% { transform: rotate(0deg);  }
       72%           { transform: rotate(-26deg); }
       82%           { transform: rotate(14deg); }
       92%           { transform: rotate(-6deg); }
@@ -897,7 +881,6 @@
           <div class="eye eye-l"></div>
           <div class="eye eye-r"></div>
           <div class="mouth-open"></div>
-          <div class="cat-tail"></div>
           <div class="cat-eye cat-eye-l"></div>
           <div class="cat-eye cat-eye-r"></div>
           <div class="star s1"></div>
