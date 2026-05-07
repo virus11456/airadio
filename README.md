@@ -16,18 +16,20 @@
 ```
 ☁️ Suno 雲端 ────[每小時 cron sync]────▶ 💾 VPS suno-library/   (mp3, 多 playlist)
 ☁️ Pollinations ─[每首歌一張封面 lazy gen]▶ 💾 VPS covers/        (jpg)
-☁️ MiniMax-M2 ──◀[排歌 / DJ 對白]──── 🖥️ airadio server (PM2 fork)
+☁️ MiniMax-M2 ──◀[排歌 + 唸聽眾來信]── 🖥️ airadio server (PM2 fork)
 ☁️ Edge TTS ────◀[DJ 講話轉 mp3]──────┤ (Fish.audio 主、失敗 fallback Edge)
 ☁️ wttr.in ─────◀[即時天氣 / 風 / 濕度]┤ (OpenWeather 有 key 優先)
-                                        │  + SQLite (聽眾 like/dislike、播放紀錄)
+                                        │  + SQLite (likes / dislikes / 來信)
                                         ▼
-                              🎵 /audio/suno/{id}.mp3
-                              🖼️ /covers/{id}.jpg
-                              🔌 /api/feedback (👍/👎)
+              🎵 /audio/suno/{id}.mp3      📮 /api/chat   (聽眾來信)
+              🖼️ /covers/{id}.jpg         💖 /api/reaction (Heart Rain)
+              🔌 /api/feedback (👍/👎)    📬 /api/mail/recent
                                         │
                                         ▼
                   🌍 任何人打開 http://72.60.110.37:8080  → 即時收聽
                   ⏱  進去就接到歌的中段，不會從頭開始（live offset）
+                  💖 點封面任一處 → 你按的 emoji 全頻道聽眾即時看到
+                  📮 寄信給老 C → 下段廣播他可能會點名你的留言來回應
 ```
 
 ## 現在在跑什麼
@@ -41,6 +43,8 @@
 | **封面** | Pollinations.ai (Flux) | 每首歌一張 Hiroshi Nagai 風封面，本機 cache |
 | **即時情境** | wttr.in + JS Date + SQLite | 注入 system prompt（時段 / 天氣 / 節日 / 最近播） |
 | **聽眾偏好** | 👍 / 👎 + SQLite `feedback` 表 | 寫進 prompt：DJ 之後優先 / 避開該風格 |
+| **Heart Rain** | `/api/reaction` + WS broadcast | 點封面飄 emoji 粒子，所有聽眾即時看到，不寫 DB |
+| **聽眾來信** | `/api/chat` → `messages.role='fan'` | DJ 每段挑 1-2 封來唸（`replied_to:[id]` 自動標記已回） |
 | **直播位置** | server-side `startedAt` | 任何人開頁就接到歌的中段（不會重來） |
 | **前端** | PWA + Service Worker | Hiroshi Nagai 海灘 + 8bit 像素字 + 落日均衡器 |
 | **進程守護** | PM2 fork mode | 崩潰自動重啟、開機自啟、log rotate |
@@ -95,6 +99,23 @@
 - [x] PWA 在 `loadedmetadata` 時 `audio.currentTime = (serverNow - startedAt - drift) / 1000`
 - [x] 結果：你關分頁、開新分頁，會接到歌的「現在這一秒」，不會從頭播
 - [x] 歌只剩 < 2 秒時不 seek（避免 race），DJ TTS 段不 seek（每句都要聽完）
+
+### Heart Rain（即時聽眾反應）
+- [x] PWA 中央封面變成 _可點區_：點任意處飄 💖 / 🔥 / 🌊 / 😴 / 🌙 / ☀️ / 🎵
+- [x] `POST /api/reaction { emoji, x, y }` → 後端 `publish('reaction', payload)` → 所有 WS 客戶端收到 → `spawnHeart(payload)`
+- [x] 不寫 DB（純氛圍），但伺服器留 8 秒 ring buffer 給晚加入的聽眾，可以從 `/api/reaction/recent` 拉
+- [x] 250ms 防 spam cooldown、最多 80 顆同時飄
+- [x] 用 normalised 0..1 座標，不同 viewport 大小都對齊
+
+### 聽眾來信 + DJ 回信（Claudio 真的會點名你）
+- [x] PWA 輸入框語意：「寄信給老 C」（不再是 chat）
+- [x] `POST /api/chat`（帶 `X-Client-Id`）非命令文字 → 寫進 `messages` 表 `role='fan'`、`addressed=0`
+- [x] 30 分鐘自動 expire（`state.expireOldFanMessages`）防止舊信永遠塞在 prompt
+- [x] `context.js` 把待回信件帶 `[#id]` marker 注入 system prompt
+- [x] DJ persona（Claudio aka 老 C）內建規則：每段挑 1-2 封來唸 + JSON 加 `replied_to:[42, 43]`
+- [x] `dj.js` 收到 plan 後：① 讀 `replied_to`；② 用 regex 抓 say 裡的 `#42` 標記；③ `state.markFanAddressed(ids)`
+- [x] PWA `📮 LISTENER MAIL` 區塊每 25 秒 poll，顯示最近 6 封 + ✓ replied / · pending 狀態
+- [x] `prompts/dj-persona.md` 重寫成電台主持人人設（不只是排歌助理）
 
 ### Live Context (DJ 看到的現在)
 - [x] 現在時間 + 時區 (TZ 預設 Asia/Taipei)
@@ -223,7 +244,10 @@ pm2 save && pm2 startup
 | **DELETE** | **`/api/feedback/:trackId`** | 撤銷 |
 | **GET**    | **`/api/feedback/:trackId`** | `{likes, dislikes, mine}` |
 | **GET**    | **`/api/feedback/summary`** | top liked / disliked，DJ 用 |
-| WS   | `/stream` | 即時推播 `now-playing` / `queue-update` / `dj-saying` |
+| **POST**   | **`/api/reaction`** | `{emoji, x, y}` + `X-Client-Id`，廣播到所有 WS 聽眾 |
+| **GET**    | **`/api/reaction/recent`** | 最近 8 秒 reactions（晚加入的 PWA 用） |
+| **GET**    | **`/api/mail/recent?limit=6`** | 最近聽眾來信（PWA 顯示 ✓ replied / · pending） |
+| WS   | `/stream` | 即時推播 `now-playing` / `queue-update` / `dj-saying` / `reaction` / `user-message` |
 | GET  | `/audio/suno/:id.mp3` | Suno 本機 mp3 |
 | GET  | `/audio/tts/:hash.mp3` | DJ TTS mp3 |
 | **GET**  | **`/covers/:id.jpg`** | AI 封面（immutable cache） |
@@ -280,6 +304,12 @@ A: 已經是這樣了。Server 知道每首歌「現在播到第幾秒」，你�
 **Q: 我按 LIKE / NOPE，DJ 真的會聽嗎？**
 A: 會。下個 DJ refill cycle（30–60 秒）的 system prompt 會看到 `## 聽眾按讚` / `## 聽眾倒讚` 列表，M2 會優先排相似 / 避開類似的。
 
+**Q: 我寄信給老 C，他會回嗎？**
+A: 會。每封信進去後 30 分鐘內，DJ 在某段廣播會挑 1-2 封來點名（"#42 號聽眾說加班..."）+ 配一首對應的歌。被回過的會在 PWA 變成 ✓，未回的維持 · pending；30 分鐘沒回的自動 expire（避免老信永遠占位）。
+
+**Q: Heart Rain 會被存起來嗎？**
+A: 不會。是純現場氛圍（你不會想知道誰在五月按了 💖）。只有 8 秒 ring buffer 給晚加入的客戶端對齊。
+
 ---
 
 ## 檔案樹
@@ -304,7 +334,9 @@ airadio/
 │   │   ├── plan.js
 │   │   ├── stream.js         # WS
 │   │   ├── taste.js
-│   │   └── feedback.js       # ★ NEW: like / dislike API
+│   │   ├── feedback.js       # ★ NEW: like / dislike API
+│   │   ├── reactions.js      # ★ NEW: Heart Rain broadcast
+│   │   └── mail.js           # ★ NEW: 聽眾來信公開檢視
 │   └── workers/
 │       ├── dj.js             # DJ refill + play loop（startedAt 在這寫）
 │       ├── music.js
