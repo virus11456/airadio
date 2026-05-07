@@ -13,6 +13,8 @@ import tasteRoutes from './routes/taste.js';
 import planRoutes from './routes/plan.js';
 import streamRoutes from './routes/stream.js';
 import feedbackRoutes from './routes/feedback.js';
+import reactionRoutes from './routes/reactions.js';
+import mailRoutes from './routes/mail.js';
 
 import { djLoop } from './workers/dj.js';
 import { musicLoop } from './workers/music.js';
@@ -77,6 +79,8 @@ await app.register(tasteRoutes);
 await app.register(planRoutes);
 await app.register(streamRoutes);
 await app.register(feedbackRoutes);
+await app.register(reactionRoutes);
+await app.register(mailRoutes);
 
 app.get('/api/health', async () => ({ ok: true, ts: Date.now() }));
 

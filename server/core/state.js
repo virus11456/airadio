@@ -66,8 +66,16 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS feedback_kind_idx  ON feedback(kind, ts DESC);
 `);
 
+// Migrate older DBs: add addressed/sender columns to messages if missing.
+{
+  const cols = db.pragma('table_info(messages)');
+  const have = new Set(cols.map(c => c.name));
+  if (!have.has('addressed'))   db.exec("ALTER TABLE messages ADD COLUMN addressed INTEGER NOT NULL DEFAULT 0");
+  if (!have.has('sender'))      db.exec("ALTER TABLE messages ADD COLUMN sender    TEXT");
+}
+
 const stmts = {
-  insertMessage: db.prepare('INSERT INTO messages (role, content, ts) VALUES (?, ?, ?)'),
+  insertMessage: db.prepare('INSERT INTO messages (role, content, ts, sender) VALUES (?, ?, ?, ?)'),
   recentMessages: db.prepare('SELECT role, content, ts FROM messages ORDER BY ts DESC LIMIT ?'),
   insertPlay: db.prepare('INSERT INTO plays (song_id, title, artist, src, duration, ts) VALUES (?, ?, ?, ?, ?, ?)'),
   recentPlays: db.prepare('SELECT song_id, title, artist, duration, ts FROM plays ORDER BY ts DESC LIMIT ?'),
@@ -113,11 +121,25 @@ const stmts = {
     ORDER BY ts DESC
     LIMIT ?
   `),
+  unaddressedFan: db.prepare(`
+    SELECT id, content, sender, ts FROM messages
+    WHERE role = 'fan' AND addressed = 0
+    ORDER BY ts ASC
+    LIMIT ?
+  `),
+  recentFan: db.prepare(`
+    SELECT id, content, sender, addressed, ts FROM messages
+    WHERE role = 'fan'
+    ORDER BY ts DESC
+    LIMIT ?
+  `),
+  markAddressedById: db.prepare(`UPDATE messages SET addressed = 1 WHERE id = ?`),
+  markAddressedOlderThan: db.prepare(`UPDATE messages SET addressed = 1 WHERE role = 'fan' AND ts < ? AND addressed = 0`),
 };
 
 export const state = {
-  recordMessage(role, content) {
-    stmts.insertMessage.run(role, content, Date.now());
+  recordMessage(role, content, sender = null) {
+    stmts.insertMessage.run(role, content, Date.now(), sender);
   },
   recentMessages(limit = 20) {
     return stmts.recentMessages.all(limit).reverse();
@@ -175,6 +197,30 @@ export const state = {
   },
   recentFeedback(limit = 20) {
     return stmts.recentFeedback.all(limit);
+  },
+
+  // ---------- Listener fan-mail ----------
+  unaddressedFanMessages(limit = 5) {
+    return stmts.unaddressedFan.all(limit);
+  },
+  recentFanMessages(limit = 20) {
+    return stmts.recentFan.all(limit);
+  },
+  markFanAddressed(ids) {
+    if (!Array.isArray(ids) || !ids.length) return 0;
+    let n = 0;
+    for (const id of ids) {
+      const v = Number(id);
+      if (!Number.isFinite(v)) continue;
+      const r = stmts.markAddressedById.run(v);
+      n += r.changes || 0;
+    }
+    return n;
+  },
+  expireOldFanMessages(olderThanMs = 30 * 60 * 1000) {
+    const cutoff = Date.now() - olderThanMs;
+    const r = stmts.markAddressedOlderThan.run(cutoff);
+    return r.changes || 0;
   },
 };
 

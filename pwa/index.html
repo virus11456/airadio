@@ -223,6 +223,94 @@
     .feedback .pulse { animation: fbpulse 360ms ease; }
     @keyframes fbpulse { 0%{transform:scale(1);} 50%{transform:scale(1.18);} 100%{transform:scale(1);} }
 
+    /* ============ HEART RAIN OVERLAY ============ */
+    .cover #hearts {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .cover { cursor: pointer; }
+    .cover .tap-hint {
+      position: absolute; left: 50%; bottom: 10px;
+      transform: translateX(-50%);
+      z-index: 6;
+      pointer-events: none;
+      font-family: 'Press Start 2P', 'Zpix', monospace;
+      font-size: 8px; letter-spacing: 0.3em;
+      color: #fff;
+      background: rgba(0,0,0,0.45);
+      padding: 4px 10px;
+      border-radius: 999px;
+      opacity: 0; transition: opacity 360ms;
+    }
+    .cover:hover .tap-hint, .cover:active .tap-hint { opacity: 0.85; }
+    .cover .reaction-bar {
+      position: absolute; left: 50%; bottom: 10px;
+      transform: translateX(-50%) translateY(20px);
+      z-index: 7;
+      display: flex; gap: 6px;
+      padding: 6px 10px;
+      background: rgba(255,245,225,0.94);
+      border: 1px solid rgba(26,46,58,0.18);
+      border-radius: 999px;
+      box-shadow: 0 6px 16px var(--shadow);
+      opacity: 0; pointer-events: none;
+      transition: opacity 200ms, transform 200ms;
+    }
+    .cover.show-bar .reaction-bar {
+      opacity: 1; transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+    .cover .reaction-bar button {
+      appearance: none; cursor: pointer;
+      background: transparent; border: 0;
+      font-size: 18px; line-height: 1;
+      padding: 4px 6px;
+      transition: transform 100ms;
+    }
+    .cover .reaction-bar button:hover { transform: scale(1.25); }
+    .cover .reaction-bar button:active { transform: scale(0.9); }
+
+    /* ============ MAIL LIST (recent listener letters) ============ */
+    .mail-list {
+      max-width: 720px; margin: 8px auto 18px;
+      padding: 12px 14px;
+      background: rgba(255,245,225,0.7);
+      border: 1px dashed rgba(26,46,58,0.25);
+      border-radius: 10px;
+      font-family: 'Zpix', 'DotGothic16', monospace;
+      font-size: 12px; line-height: 1.55;
+      color: var(--ink);
+      max-height: 132px;
+      overflow-y: auto;
+    }
+    .mail-list h4 {
+      font-family: 'Press Start 2P', 'Zpix', monospace;
+      font-size: 10px; letter-spacing: 0.3em;
+      margin-bottom: 8px; color: var(--accent-1);
+    }
+    .mail-list .letter {
+      display: flex; gap: 8px; padding: 4px 0;
+      border-bottom: 1px dotted rgba(26,46,58,0.12);
+    }
+    .mail-list .letter:last-child { border-bottom: 0; }
+    .mail-list .letter .who {
+      flex: 0 0 64px; opacity: 0.55; font-size: 10px;
+      font-family: 'Press Start 2P', 'Zpix', monospace;
+    }
+    .mail-list .letter .body { flex: 1 1 auto; }
+    .mail-list .letter.is-replied .body::before {
+      content: '✓ ';
+      color: var(--accent-2); font-weight: 700;
+      text-shadow: 0 0 0 var(--accent-1);
+    }
+    .mail-list .letter.is-pending .body::before {
+      content: '· ';
+      color: var(--accent-1); font-weight: 700;
+    }
+    .mail-list .empty { opacity: 0.55; font-size: 11px; text-align: center; padding: 6px 0; }
+
     /* ============ COVER ART (canvas) ============ */
     .cover {
       width: 100%; aspect-ratio: 1;
@@ -536,7 +624,21 @@
         </div>
       </div>
 
-      <div class="cover" id="cover"><canvas id="pacman" width="480" height="480"></canvas><img id="ai-cover" class="ai-cover fade-bars" alt="" /></div>
+      <div class="cover" id="cover">
+        <canvas id="pacman" width="480" height="480"></canvas>
+        <img id="ai-cover" class="ai-cover fade-bars" alt="" />
+        <canvas id="hearts" width="480" height="480"></canvas>
+        <div class="reaction-bar" id="reaction-bar">
+          <button data-emoji="💖" type="button" aria-label="love">💖</button>
+          <button data-emoji="🔥" type="button" aria-label="fire">🔥</button>
+          <button data-emoji="🌊" type="button" aria-label="wave">🌊</button>
+          <button data-emoji="😴" type="button" aria-label="sleep">😴</button>
+          <button data-emoji="🌙" type="button" aria-label="moon">🌙</button>
+          <button data-emoji="☀️" type="button" aria-label="sun">☀️</button>
+          <button data-emoji="🎵" type="button" aria-label="music">🎵</button>
+        </div>
+        <div class="tap-hint">▼ TAP TO REACT</div>
+      </div>
       <div class="now">
         <div class="title" id="now-title">—</div>
         <div class="artist" id="now-artist"></div>
@@ -556,10 +658,14 @@
         <button id="btn-toggle">♪ Live</button>
       </div>
       <div class="chat">
-        <input id="chat-input" placeholder="跟 DJ 說點什麼… (例: 放點 city pop)" />
+        <input id="chat-input" placeholder="寄信給老 C... 例：今天加班，幫我點一首慢的" maxlength="200" />
         <input id="chat-input-hidden" type="hidden" />
-        <button id="chat-send">Send</button>
+        <button id="chat-send">SEND ✉</button>
       </div>
+      <section class="mail-list" id="mail-list" aria-label="最近的聽眾來信">
+        <h4>📮 LISTENER MAIL</h4>
+        <div id="mail-list-body"><div class="empty">還沒有來信。第一封就由你寫。</div></div>
+      </section>
       <div class="queue">
         <h3>Up Next</h3>
         <div id="queue-list"></div>

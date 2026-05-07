@@ -31,8 +31,10 @@ export function resume() { paused = false; }
 
 async function refill(hint = '') {
   let plan;
+  let pendingFanIds = [];
   try {
     const ctx = await buildContext(hint || '排下兩三首歌，照我品味與當前時段。');
+    pendingFanIds = ctx.pendingFanIds || [];
     state.beat('dj');
     const inner = await callClaude({ system: ctx.system, user: ctx.user });
     state.beat('dj');
@@ -59,6 +61,23 @@ async function refill(hint = '') {
   }
   if (plan.say && plan.say.trim()) {
     state.recordMessage('dj', plan.say.trim());
+
+    // Mark the listener letters this segment addressed. If the LLM emitted
+    // replied_to: [ids], use those (precise). Otherwise heuristically mark
+    // any letter whose id was quoted in the say (#42 etc), so we don't loop
+    // on the same letters next cycle.
+    const replied = Array.isArray(plan.replied_to) ? plan.replied_to.map(Number).filter(Number.isFinite) : [];
+    const quoted = [];
+    if (pendingFanIds.length) {
+      const m = (plan.say.match(/#\d+/g) || []).map(s => Number(s.slice(1)));
+      for (const id of m) if (pendingFanIds.includes(id)) quoted.push(id);
+    }
+    const toMark = [...new Set([...replied, ...quoted])];
+    if (toMark.length) {
+      const n = state.markFanAddressed(toMark);
+      if (n) console.log('[dj] marked fan letters addressed:', toMark.join(','));
+    }
+
     let ttsPath = null;
     state.beat('dj');
     try { ttsPath = await synthesize(plan.say); }
@@ -69,8 +88,9 @@ async function refill(hint = '') {
       src: ttsPath,
       duration: estimateDurationMs(plan.say),
       reason: plan.reason,
+      repliedTo: toMark,
     });
-    publish(events.DJ_SAYING, { say: plan.say, src: ttsPath });
+    publish(events.DJ_SAYING, { say: plan.say, src: ttsPath, repliedTo: toMark });
   }
 
   // 2) Music items

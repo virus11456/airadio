@@ -101,6 +101,22 @@ export async function buildContext(userInput, opts = {}) {
     if (dislikes.length) dislikedSummary = dislikes.map(r => `- ${r.title || r.track_id}${r.artist ? ' / ' + r.artist : ''} (×${r.n})`).join('\n');
   } catch (_) {}
 
+  // Fan letters — pending listener messages the DJ should consider replying to.
+  let fanLettersBlock = '（沒有人來信）';
+  let pendingFanIds = [];
+  try {
+    state.expireOldFanMessages?.(30 * 60 * 1000); // age out > 30min so DJ doesnt reply to stale things
+    const letters = state.unaddressedFanMessages?.(5) || [];
+    if (letters.length) {
+      pendingFanIds = letters.map(l => l.id);
+      fanLettersBlock = letters.map(l => {
+        const sender = (l.sender || 'anon').slice(0, 8);
+        const ago = Math.round((Date.now() - l.ts) / 1000);
+        return `[#${l.id}] (${sender}, ${ago}秒前) ${(l.content || '').slice(0, 200)}`;
+      }).join('\n');
+    }
+  } catch (_) {}
+
   // ⑤ user input / tool result
   const input = userInput
     ? `用戶輸入: ${userInput}`
@@ -121,6 +137,9 @@ export async function buildContext(userInput, opts = {}) {
     '## 記憶（最近播放）', memory,
     '## 聽眾按讚（請優先排這類風格 / 同首歌可以多播）', likedSummary,
     '## 聽眾倒讚（請避開以下歌曲 / 同類風格降低權重）', dislikedSummary,
+    '## 聽眾來信（待你在 say 裡親自回應；引用時請在 JSON 加 replied_to:[#id,#id]）',
+    fanLettersBlock,
+    '> 收信原則：\n> 1) 每段最多挑 1-2 封來信回覆，挑最有趣 / 最有戲的。\n> 2) 回覆時口語：「剛收到 #42 號聽眾來信說...」，不要照抄整段。\n> 3) 回覆完務必把那幾封的 id 放進 replied_to。\n> 4) 沒人來信就不要硬扯，回到正常排歌。',
     '## DJ 最近講過（重要：請勿重複以下任一句的內容或開頭）', recentDjSays.map(s => '- ' + s).join('\n') || '（還沒講過）',
     '## 軌跡', trace,
   ].filter(Boolean).join('\n\n');
@@ -135,5 +154,5 @@ ${vibe ? '氛圍：' + vibe + '\n' : ''}${festival ? '節日：' + festival + '\
 ${input}
 
 記住：say 必須明確提到上面的時間與天氣，不要使用「凌晨」「深夜」這類不符合現在時段的詞。`;
-  return { system, user: hardCtx };
+  return { system, user: hardCtx, pendingFanIds };
 }

@@ -258,12 +258,12 @@ async function sendChat() {
   try {
     const r = await fetch('/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Client-Id': CLIENT_ID },
       body: JSON.stringify({ text }),
     });
     if (!r.ok) throw new Error('http ' + r.status);
     inp.value = '';
-    showToast('✓ 訊息已送 · DJ 下個循環回應');
+    showToast('✓ 信寄出 · 老 C 收到了，下段廣播可能會回'); refreshMail();
   } catch (e) {
     alert('送信失敗: ' + e.message);
   } finally {
@@ -306,8 +306,153 @@ function handleEvent(msg) {
       if (payload.action === 'resume') { tryPlay(); $('btn-toggle').textContent = '⏸'; }
       break;
     case 'hello': status.textContent = `connected · ${new Date(payload.ts).toLocaleTimeString()}`; break;
+    case 'reaction': spawnHeart(payload); break;
+    case 'user-message': refreshMail(); break;
   }
 }
+
+// ============ Heart Rain ============
+const hearts = document.getElementById('hearts');
+const hctx = hearts ? hearts.getContext('2d') : null;
+const reactionBar = document.getElementById('reaction-bar');
+let particles = [];
+let lastFrame = 0;
+let myReactionCooldown = 0;
+
+function resizeHearts() {
+  if (!hearts) return;
+  const r = coverEl.getBoundingClientRect();
+  hearts.width = Math.max(1, Math.round(r.width));
+  hearts.height = Math.max(1, Math.round(r.height));
+}
+window.addEventListener('resize', resizeHearts);
+setTimeout(resizeHearts, 50);
+
+function spawnHeart(payload) {
+  if (!hctx || !hearts || !payload) return;
+  resizeHearts();
+  const w = hearts.width, h = hearts.height;
+  const x = (typeof payload.x === 'number') ? payload.x * w : Math.random() * w;
+  const y = (typeof payload.y === 'number') ? payload.y * h : (h * 0.7 + Math.random() * h * 0.2);
+  particles.push({
+    emoji: payload.emoji || '💖',
+    x, y,
+    vx: (Math.random() - 0.5) * 0.6,
+    vy: -1.4 - Math.random() * 1.0,
+    life: 0,
+    maxLife: 2200 + Math.random() * 700,
+    size: 22 + Math.random() * 10,
+  });
+  if (particles.length > 80) particles.splice(0, particles.length - 80);
+  if (!lastFrame) lastFrame = performance.now(), requestAnimationFrame(stepHearts);
+}
+
+function stepHearts(now) {
+  if (!hctx) return;
+  const dt = Math.min(48, now - (lastFrame || now));
+  lastFrame = now;
+  hctx.clearRect(0, 0, hearts.width, hearts.height);
+  for (const p of particles) {
+    p.life += dt;
+    p.x += p.vx * dt * 0.06;
+    p.y += p.vy * dt * 0.06;
+    p.vy *= 0.995;
+    const t = p.life / p.maxLife;
+    const alpha = t < 0.1 ? t * 10 : Math.max(0, 1 - (t - 0.1) / 0.9);
+    hctx.globalAlpha = alpha;
+    hctx.font = `${p.size}px serif`;
+    hctx.textAlign = 'center';
+    hctx.fillText(p.emoji, p.x, p.y);
+  }
+  hctx.globalAlpha = 1;
+  particles = particles.filter(p => p.life < p.maxLife);
+  if (particles.length) requestAnimationFrame(stepHearts);
+  else lastFrame = 0;
+}
+
+async function sendReaction(emoji, x, y) {
+  const now = Date.now();
+  if (now - myReactionCooldown < 250) return; // simple anti-spam
+  myReactionCooldown = now;
+  spawnHeart({ emoji, x, y });
+  try {
+    await fetch('/api/reaction', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Client-Id': CLIENT_ID },
+      body: JSON.stringify({ emoji, x, y }),
+    });
+  } catch (_) {}
+}
+
+// Tap on cover -> show emoji bar (mobile-friendly). Click on bar emoji -> spawn.
+if (coverEl) {
+  let barTimer = null;
+  coverEl.addEventListener('click', (ev) => {
+    if (ev.target.closest('.reaction-bar')) return; // bar click handled below
+    const r = coverEl.getBoundingClientRect();
+    const x = (ev.clientX - r.left) / r.width;
+    const y = (ev.clientY - r.top) / r.height;
+    sendReaction('💖', x, y);
+    coverEl.classList.add('show-bar');
+    clearTimeout(barTimer);
+    barTimer = setTimeout(() => coverEl.classList.remove('show-bar'), 2400);
+  });
+}
+if (reactionBar) {
+  reactionBar.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-emoji]');
+    if (!btn) return;
+    const emoji = btn.dataset.emoji;
+    sendReaction(emoji, 0.4 + Math.random() * 0.2, 0.55 + Math.random() * 0.25);
+  });
+}
+
+// ============ Listener Mail List ============
+const mailListBody = document.getElementById('mail-list-body');
+let mailRefreshTimer = null;
+
+async function refreshMail() {
+  if (!mailListBody) return;
+  try {
+    const r = await fetch('/api/mail/recent?limit=6');
+    if (!r.ok) return;
+    const j = await r.json();
+    renderMail(j.letters || []);
+  } catch (_) {}
+}
+function renderMail(letters) {
+  if (!mailListBody) return;
+  if (!letters.length) {
+    mailListBody.innerHTML = '<div class="empty">還沒有來信。第一封就由你寫。</div>';
+    return;
+  }
+  mailListBody.innerHTML = '';
+  for (const l of letters) {
+    const div = document.createElement('div');
+    div.className = 'letter ' + (l.addressed ? 'is-replied' : 'is-pending');
+    const who = (l.sender || 'anon').slice(0, 6);
+    const ago = humanAgo(Date.now() - l.ts);
+    div.innerHTML =
+      `<span class="who">#${l.id} · ${escapeHtml(who)}</span>` +
+      `<span class="body">${escapeHtml(l.content || '')} <span style="opacity:0.4;font-size:10px">${ago}</span></span>`;
+    mailListBody.appendChild(div);
+  }
+}
+function humanAgo(ms) {
+  const s = Math.round(ms / 1000);
+  if (s < 60)   return s + ' 秒前';
+  if (s < 3600) return Math.round(s / 60) + ' 分前';
+  return Math.round(s / 3600) + ' 小時前';
+}
+
+// Pull mail every 25s and right after sending one (`refreshMail` is also
+// called from the WS user-message handler).
+function startMailPolling() {
+  if (mailRefreshTimer) return;
+  refreshMail();
+  mailRefreshTimer = setInterval(refreshMail, 25000);
+}
+startMailPolling();
 
 // ---------- Bootstrap ----------
 async function bootstrap() {
