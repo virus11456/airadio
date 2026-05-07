@@ -171,7 +171,6 @@ function refreshBoothTint() {
 setInterval(refreshBoothTint, 5 * 60 * 1000);
 refreshBoothTint();
 
-// Letters pinned to the booth wall, refreshed every 25s.
 let _pinLettersCache = [];
 async function refreshPinLetters(highlightIds = []) {
   if (!pinLetters) return;

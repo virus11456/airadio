@@ -270,49 +270,6 @@
        toggled by JS but no longer drive any styles, so the .booth base
        background applies regardless of the hour. */
 
-    /* —— Control-room glass partition (top right). Behind it: mixing board. —— */
-    .booth-window {
-      position: absolute;
-      top: 5%; right: 4%;
-      width: 26%; aspect-ratio: 1.6/1;
-      background:
-        /* Warm light leak from the control room */
-        radial-gradient(ellipse at 30% 60%, rgba(255,200,140,0.35) 0%, transparent 60%),
-        linear-gradient(180deg, #2A4A6B 0%, #1A2E45 100%);
-      border: 3px solid #1a2230;
-      box-shadow: 3px 3px 0 #1a2230, 0 0 0 1px rgba(255,255,255,0.06) inset;
-      z-index: 3;
-      overflow: hidden;
-    }
-    /* Mixing board silhouette: rows of pixel knobs + LED strip */
-    .booth-window::before {
-      content: ''; position: absolute;
-      bottom: 14%; left: 8%; right: 8%;
-      height: 36%;
-      background:
-        /* Knob row (small dots) */
-        radial-gradient(circle at 10% 30%, #1a1a1a 0 1.5px, transparent 1.6px),
-        radial-gradient(circle at 22% 30%, #1a1a1a 0 1.5px, transparent 1.6px),
-        radial-gradient(circle at 34% 30%, #1a1a1a 0 1.5px, transparent 1.6px),
-        radial-gradient(circle at 46% 30%, #1a1a1a 0 1.5px, transparent 1.6px),
-        radial-gradient(circle at 58% 30%, #1a1a1a 0 1.5px, transparent 1.6px),
-        radial-gradient(circle at 70% 30%, #1a1a1a 0 1.5px, transparent 1.6px),
-        radial-gradient(circle at 82% 30%, #1a1a1a 0 1.5px, transparent 1.6px),
-        /* Fader strips */
-        repeating-linear-gradient(
-          90deg,
-          #2a2a2a 0px, #2a2a2a 2px, transparent 2px, transparent 8px
-        ),
-        linear-gradient(180deg, #1f1f23 0%, #0f0f12 100%);
-    }
-    /* LED strip on top of mixer */
-    .booth-window::after {
-      content: ''; position: absolute;
-      top: 18%; left: 10%; width: 18%; height: 6%;
-      background: linear-gradient(90deg, #3DD66A 0%, #3DD66A 30%, #F5D547 30%, #F5D547 65%, #E63938 65%, #E63938 100%);
-      box-shadow: 0 0 4px rgba(255,255,255,0.25);
-    }
-
     /* —— ON AIR sign (top left) —— */
     .booth-onair {
       position: absolute;
@@ -340,134 +297,6 @@
     @keyframes blink-light {
       0%,100% { opacity: 1; }
       50%     { opacity: 0.55; }
-    }
-
-    /* —— Small AI cover frame on wall (next to window) —— */
-    .booth-cover {
-      position: absolute;
-      top: 22%; right: 5%;
-      width: 19%; aspect-ratio: 1;
-      background: var(--paper);
-      border: 3px solid #1a2230;
-      box-shadow: 3px 3px 0 #1a2230;
-      z-index: 3;
-      transform: rotate(2deg);
-      overflow: hidden;
-      image-rendering: pixelated;
-    }
-    .booth-cover::after {
-      content: '';
-      position: absolute; top: 4%; left: 50%; transform: translateX(-50%);
-      width: 4px; height: 4px;
-      border-radius: 50%;
-      background: #555;
-      box-shadow: 0 1px 0 rgba(255,255,255,0.4);
-    }
-    .booth-cover canvas {
-      width: 100%; height: 100%; display: block;
-      image-rendering: pixelated;
-      image-rendering: -moz-crisp-edges;
-      image-rendering: crisp-edges;
-    }
-
-    /* —— Studio monitors flanking Claudio —— */
-    .booth-monitor {
-      position: absolute;
-      bottom: 8%;
-      width: 14%; aspect-ratio: 3/4;
-      background:
-        linear-gradient(180deg, #1f1f25 0%, #0e0e12 100%);
-      border: 2px solid #1a2230;
-      box-shadow: 3px 3px 0 #1a2230;
-      z-index: 4;
-    }
-    .booth-monitor.monitor-l { left: 4%;  transform: rotate(-2deg); }
-    .booth-monitor.monitor-r { right: 4%; transform: rotate( 2deg); }
-    .booth-monitor .cone {
-      position: absolute;
-      top: 14%; left: 50%; transform: translateX(-50%);
-      width: 64%; aspect-ratio: 1; border-radius: 50%;
-      background:
-        radial-gradient(circle at 50% 40%, #4A4A52 0%, #1A1A20 70%, #0A0A10 100%);
-      box-shadow: 0 0 0 2px #2a2a30 inset, 0 0 0 1px #000;
-    }
-    .booth-monitor .cone::before {  /* dust cap */
-      content: ''; position: absolute;
-      top: 35%; left: 35%; width: 30%; aspect-ratio: 1;
-      border-radius: 50%;
-      background: radial-gradient(circle, #6A6A72 0%, #2A2A30 100%);
-    }
-    .booth-monitor .led {
-      position: absolute;
-      bottom: 6%; left: 50%; transform: translateX(-50%);
-      width: 6px; height: 6px; border-radius: 50%;
-      background: #3DD66A;
-      box-shadow: 0 0 6px #3DD66A;
-    }
-
-    /* —— Pop filter in front of the mic head —— */
-    .booth-mic .pop-filter {
-      position: absolute;
-      top: 18%; left: 50%; transform: translateX(-50%);
-      width: 110%; aspect-ratio: 1; border-radius: 50%;
-      background: radial-gradient(circle at 50% 50%, rgba(40,40,40,0.55) 0%, rgba(40,40,40,0.65) 60%, rgba(60,60,60,0.85) 70%, transparent 72%);
-      border: 2px solid #1a1a1a;
-      box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
-      pointer-events: none;
-    }
-    /* The mic-head itself was opaque; lighten the pop filter so the mic
-       still reads through it */
-    .booth-mic .mic-head { z-index: 1; }
-    .booth-mic .pop-filter { z-index: 2; opacity: 0.55; }
-
-    /* —— A few pinned letters on the wall (top-left, under ON AIR) —— */
-    .booth-pin-letters {
-      position: absolute;
-      top: 22%; left: 3%;
-      width: 24%;
-      display: flex; flex-direction: column; gap: 6px;
-      z-index: 3;
-    }
-    .booth-pin-letters .pin {
-      position: relative;
-      background: #FFF1A8;
-      color: #1a2230;
-      font-family: 'Zpix', 'DotGothic16', monospace;
-      font-size: 10px; line-height: 1.4;
-      letter-spacing: 0.02em;
-      padding: 7px 8px 5px;
-      border: 2px solid #1a2230;            /* hard pixel border */
-      box-shadow: 3px 3px 0 #1a2230;        /* offset hard shadow, no blur */
-      transform: rotate(var(--rot, -2deg));
-      max-height: 38px; overflow: hidden;
-      image-rendering: pixelated;
-    }
-    /* Pixel pushpin (replace emoji): a 6×6 red square with a darker shadow */
-    .booth-pin-letters .pin::before {
-      content: '';
-      position: absolute; top: -5px; left: 8px;
-      width: 8px; height: 8px;
-      background: #D9381E;
-      border: 2px solid #1a2230;
-      box-shadow: 0 1px 0 #1a2230, 0 2px 0 rgba(0,0,0,0.4);
-    }
-    .booth-pin-letters .pin.replied { background: #B6E0A8; }
-    .booth-pin-letters .pin.replied::after {
-      content: 'OK';
-      position: absolute; top: -4px; right: -4px;
-      color: #fff;
-      background: #D9381E;
-      font-family: 'Press Start 2P', 'Zpix', monospace;
-      font-size: 7px; letter-spacing: 0.2em;
-      padding: 3px 4px 2px;
-      border: 2px solid #1a2230;
-      box-shadow: 2px 2px 0 #1a2230;
-      transform: rotate(6deg);
-    }
-    .booth-pin-letters .pin.highlight {
-      transform: rotate(0deg) scale(1.08);
-      background: #FFE85A;
-      box-shadow: 3px 3px 0 #1a2230, 0 0 0 3px #F5D547;
     }
 
     /* —— Claudio character SVG —— */
@@ -1016,14 +845,7 @@
 
       /* Booth: simplify so Claudio stays the focal point */
       .booth-onair { font-size: 8px; padding: 4px 8px; }
-      .booth-onair .dot { width: 5px; height: 5px; margin-right: 3px; }
-      .booth-cover { width: 22%; top: 22%; right: 4%; }
-      .booth-window { width: 26%; top: 4%; right: 3%; aspect-ratio: 1.3/1; }
-      .booth-pin-letters { width: 26%; left: 3%; top: 24%; gap: 4px; }
-      .booth-pin-letters .pin { font-size: 9px; padding: 5px 6px 4px; max-height: 32px; }
-      .booth-pin-letters .pin::before { width: 6px; height: 6px; top: -4px; left: 6px; }
-      .booth-pin-letters .pin.replied::after { font-size: 6px; padding: 2px 3px 1px; }
-      .booth-bubble { font-size: 9px; padding: 6px 8px; max-height: 5em; -webkit-line-clamp: 3; }
+      .booth-onair .dot { width: 5px; height: 5px; margin-right: 3px; }      .booth-bubble { font-size: 9px; padding: 6px 8px; max-height: 5em; -webkit-line-clamp: 3; }
 
       /* Reaction bar bigger touch target */
       .cover .reaction-bar { gap: 4px; padding: 6px 8px; bottom: 8px; }
@@ -1032,12 +854,7 @@
 
     @media (max-width: 380px) {
       .clockbox .time { font-size: 24px; }
-      .clockbox .meta { font-size: 8px; gap: 6px; }
-      .booth-pin-letters { display: none; }   /* too cramped */
-      .booth-cover { width: 26%; top: 28%; right: 4%; }
-      .booth-window { width: 30%; }
-      .feedback button { padding: 7px 10px; font-size: 8px; min-width: 72px; }
-      .dj-line { font-size: 11px; padding: 14px 12px 10px; }
+      .clockbox .meta { font-size: 8px; gap: 6px; }      .dj-line { font-size: 11px; padding: 14px 12px 10px; }
     }
 
     /* ============ Install Hint Banner ============ */
@@ -1118,9 +935,6 @@
         <div class="booth" id="booth">
           <div class="booth-onair"><span class="dot"></span>ON AIR</div>
           <div class="booth-bubble" id="booth-bubble" hidden>—</div>
-          <div class="booth-window"></div>
-          <div class="booth-cover"><canvas id="cover-art" width="48" height="48"></canvas></div>
-          <div class="booth-pin-letters" id="booth-pin-letters"></div>
 
 
           <div class="claudio-wrap">
