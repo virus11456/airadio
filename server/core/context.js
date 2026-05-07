@@ -105,5 +105,15 @@ export async function buildContext(userInput, opts = {}) {
     '## 軌跡', trace,
   ].filter(Boolean).join('\n\n');
 
-  return { system, user: input };
+    // Hard-coded prefix in user message so M2 cannot ignore time/weather.
+  const tzNowStr = now.toLocaleString('zh-TW', { timeZone: process.env.TZ || 'Asia/Taipei', hour12: false });
+  const hardCtx = `[現在實際狀態]
+時間：${tzNowStr} (${phase}, 星期${WEEKDAY_TW[now.getDay()]})
+天氣：${weather}
+${vibe ? '氛圍：' + vibe + '\n' : ''}${festival ? '節日：' + festival + '\n' : ''}${nowPlaying ? nowPlaying + '\n' : ''}
+[你的任務]
+${input}
+
+記住：say 必須明確提到上面的時間與天氣，不要使用「凌晨」「深夜」這類不符合現在時段的詞。`;
+  return { system, user: hardCtx };
 }
