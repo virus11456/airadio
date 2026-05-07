@@ -559,20 +559,25 @@
     .controls button:active { transform: scale(0.97); }
 
     /* ============ CHAT ============ */
-    .chat { display: flex; gap: 10px; margin: 18px 0; }
+    .chat { display: flex; gap: 10px; margin: 18px 0; align-items: stretch; }
     .chat input {
-      flex: 1;
+      flex: 1 1 0;
+      min-width: 0;
+      width: 100%;
       background: rgba(255,245,225,0.6);
       color: var(--ink);
       border: 1px solid rgba(26,46,58,0.18);
       border-radius: 999px;
       padding: 12px 18px;
       font-family: 'Zpix', 'Press Start 2P', monospace; font-size: 14px;
+      box-sizing: border-box;
     }
     .chat input:focus { outline: 0; border-color: var(--accent-1); background: var(--paper); }
     .chat input::placeholder { color: rgba(26,46,58,0.45); }
     .chat button {
       cursor: pointer;
+      flex: 0 0 auto;
+      white-space: nowrap;
       background: var(--accent-1); color: #fff;
       border: 0; border-radius: 999px; padding: 0 22px;
       font-family: 'Press Start 2P', 'Zpix', monospace;
@@ -784,9 +789,14 @@
 
       .dj-line { padding: 16px 14px 12px; font-size: 12px; min-height: 50px; }
 
-      .chat { gap: 6px; }
-      .chat input { font-size: 13px; padding: 8px 10px; }
-      .chat button { font-size: 10px; padding: 8px 14px; }
+      .chat { gap: 6px; margin: 14px 0; }
+      .chat input { font-size: 12px; padding: 9px 14px; }
+      .chat button {
+        font-size: 9px;
+        padding: 0 12px;
+        letter-spacing: 0.12em;
+        box-shadow: 0 2px 6px var(--shadow);
+      }
 
       .mail-list { font-size: 11px; padding: 10px 12px; max-height: 110px; }
       .mail-list h4 { font-size: 9px; }
@@ -810,7 +820,10 @@
 
     @media (max-width: 380px) {
       .clockbox .time { font-size: 24px; }
-      .clockbox .meta { font-size: 8px; gap: 6px; }      .dj-line { font-size: 11px; padding: 14px 12px 10px; }
+      .clockbox .meta { font-size: 8px; gap: 6px; }
+      .chat input { font-size: 11px; padding: 8px 12px; }
+      .chat input::placeholder { font-size: 10px; }
+      .chat button { font-size: 8px; padding: 0 10px; letter-spacing: 0.1em; }      .dj-line { font-size: 11px; padding: 14px 12px 10px; }
     }
 
     /* ============ Install Hint Banner ============ */
@@ -939,9 +952,9 @@
         <button id="btn-toggle">♪ Live</button>
       </div>
       <div class="chat">
-        <input id="chat-input" placeholder="寄信給老 C... 例：今天加班，幫我點一首慢的" maxlength="200" />
+        <input id="chat-input" placeholder="寄信給老 C，他可能在歌間回你" maxlength="200" />
         <input id="chat-input-hidden" type="hidden" />
-        <button id="chat-send">SEND ✉</button>
+        <button id="chat-send">SEND</button>
       </div>
       <section class="mail-list" id="mail-list" aria-label="最近的聽眾來信">
         <h4>📮 LISTENER MAIL</h4>
