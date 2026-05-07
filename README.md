@@ -107,25 +107,26 @@
 - [x] 250ms 防 spam cooldown、最多 80 顆同時飄
 - [x] 用 normalised 0..1 座標，不同 viewport 大小都對齊
 
-### 4-Mode Stage 劇場（封面那塊變身）
-中間那塊不再是一張靜態圖，而是隨「電台正在做什麼」自動切視覺：
+### DJ 工作台俯瞰視角（取代 4-mode stage）
+中間那塊變成從上往下看 Claudio 的 1990 廣播室桌面，所有元素 _同時_ 在動：
 
-| Mode | 觸發 | 視覺 |
+| 元素 | 表現 | 行為 |
 |---|---|---|
-| 🎵 **MUSIC** | 在播音樂 | 12 吋黑膠盤旋轉、AI 封面當中央標籤紙、唱針在右側待機。Mute 時黑膠停轉，unmute 繼續轉 |
-| 📮 **MAILBAG** | DJ 在唸聽眾來信（`item.repliedTo` 非空） | 牛皮紙信封打開、信紙從中浮出、上面顯示 `#id` + sender + 信件內容 |
-| 🎙 **ON AIR** | DJ 純串場（沒回信） | 復古麥克風 + 紅色 `ON AIR` 招牌閃爍 + 8 條 VU bars |
-| 🌙 **DREAM** | 凌晨 1-5 點在播音樂 | 夜空漸層 + 月亮（含 craters）+ 淡淡星光 + 歌名飄在月下 |
+| 🟫 **木紋桌面** | 深棕漸層 + grain bands + 暖光暈 | 永遠在那 |
+| 🕘 **LCD 時鐘** | 黃綠光 LED 風 `21:31`（左上） | 每 30 秒 tick |
+| 🔴 **ON AIR 招牌** | 紅色背景 + 像素字（右上） | DJ 講話時亮起 + 閃爍；其他時候淡 |
+| 💿 **黑膠唱盤** | LP + 紅圈標籤（AI 封面）+ 唱針 | 旋轉 360°/4s；audio mute 時停轉 |
+| 🎤 **麥克風** | Mesh head + 桿 + 底座 + tally 紅燈 | DJ 講話時 tally 燈亮且閃 |
+| 📼 **卡帶** | 1990 米色塑膠殼 + 兩個 reels + NEXT 標籤 | reels 持續轉、標籤顯示 `/api/next` 第一首音樂；無下首時 reels 停 |
+| 📍 **聽眾便條紙** | 4 張黃色 sticky note 釘在桌上、隨機旋轉 | 已回覆蓋紅戳 `✓ REPLIED`；DJ 正在念的那張會放大發光 |
+| ☕ **咖啡杯** | 角落小裝飾 | 純氛圍 |
 
-切換邏輯：
-- `setNow(item)` 算 `detectMode(item)` → 設 `<div class="stage" data-mode="...">`
-- CSS opacity transition 600ms 切換 `.scene-music / .scene-mailbag / .scene-onair / .scene-dream`
-- 60 秒輪詢 re-evaluate（讓跨 1am 的歌自然從 MUSIC 滑進 DREAM）
-- Heart Rain canvas、reaction bar、tap hint 全部仍在最上層獨立運作，跟 mode 無關
-
-伺服器送什麼到前端：
-- DJ 段附帶 `repliedToLetters: [{id, sender, content}]`（`server/workers/dj.js` 從 `state.getMessageById` 撈）
-- PWA `setStage('mailbag', item)` 讀第一封塞進信紙
+實作：
+- 單一 `.djdesk` 元素，CSS class `on-air` toggle 控制麥/招牌/紅燈
+- Vinyl `<img id="vinyl-label">` 直接吃 `item.cover`
+- 卡帶輪詢 `/api/next` 25 秒一次 + 每次 setNow
+- 便條紙輪詢 `/api/mail/recent`，DJ 段帶 `repliedTo: [ids]` 讓對應便條紙 `.highlight`
+- Heart Rain canvas、reaction bar、tap hint 仍在最上層獨立運作
 
 ### 聽眾來信 + DJ 回信（Claudio 真的會點名你）
 - [x] PWA 輸入框語意：「寄信給老 C」（不再是 chat）
