@@ -80,9 +80,13 @@ const boothBubble = $('booth-bubble');
 
 const DEFAULT_LABEL = '/icon-512.png';
 
+// Remember the last music cover so the wall frame keeps showing it during
+// DJ segments (which don't have their own cover URL).
+let _lastMusicCover = null;
 function setCover(url) {
   if (!vinylLabel) return;
-  vinylLabel.src = url || DEFAULT_LABEL;
+  if (url) _lastMusicCover = url;
+  vinylLabel.src = url || _lastMusicCover || DEFAULT_LABEL;
 }
 
 // Mood = how Claudio is behaving right now. DJ talking → talking + tally light.
