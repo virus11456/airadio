@@ -18,6 +18,20 @@ const CLIENT_ID = (() => {
   return id;
 })();
 
+// Stable identity for whatever audio is currently loaded into the <audio>
+// element. The server's per-item duration estimate is best-effort, so the
+// audio.ended → /api/now refetch path can hand us the SAME item we just
+// finished. Without this guard, setting audio.src to the same URL replays
+// it (Safari/iOS in particular). Always skip re-issuing playback when the
+// incoming item maps to the same key.
+let lastPlayedKey = null;
+function itemKey(item) {
+  if (!item) return null;
+  if (item.kind === 'music') return 'm:' + (item.songId || item.src || item.title || '');
+  if (item.kind === 'dj')    return 'd:' + (item.src || (item.say || '').slice(0, 60));
+  return 'x:' + JSON.stringify(item).slice(0, 80);
+}
+
 // ---------- View switching ----------
 document.querySelectorAll('nav button').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -104,35 +118,42 @@ function setNow(item) {
       } catch (_) {}
     }
     if (item.src) {
-      // Compute live-offset so a fresh tune-in joins the song mid-play, like a
-      // real radio. startedAt + serverNow come from the server snapshot.
-      let seekSeconds = 0;
-      if (item.startedAt && item.serverNow) {
-        const drift = Date.now() - item.serverNow;             // local vs server clock
-        const elapsedMs = (Date.now() - item.startedAt) - drift;
-        const durMs = item.duration || 0;
-        // Only seek if track has clearly progressed and at least 2s remain.
-        if (elapsedMs > 1500 && (!durMs || elapsedMs < durMs - 2000)) {
-          seekSeconds = elapsedMs / 1000;
-        }
-      }
-      audio.src = item.src;
-      const seekOnce = () => {
-        try {
-          if (seekSeconds > 0 && isFinite(audio.duration) && audio.duration > seekSeconds + 1) {
-            audio.currentTime = seekSeconds;
+      const k = itemKey(item);
+      if (k !== lastPlayedKey) {
+        // Compute live-offset so a fresh tune-in joins the song mid-play, like
+        // a real radio. startedAt + serverNow come from the server snapshot.
+        let seekSeconds = 0;
+        if (item.startedAt && item.serverNow) {
+          const drift = Date.now() - item.serverNow;             // local vs server clock
+          const elapsedMs = (Date.now() - item.startedAt) - drift;
+          const durMs = item.duration || 0;
+          if (elapsedMs > 1500 && (!durMs || elapsedMs < durMs - 2000)) {
+            seekSeconds = elapsedMs / 1000;
           }
-        } catch (_) {}
-        audio.removeEventListener('loadedmetadata', seekOnce);
-      };
-      if (seekSeconds > 0) audio.addEventListener('loadedmetadata', seekOnce);
-      tryPlay();
+        }
+        audio.src = item.src;
+        const seekOnce = () => {
+          try {
+            if (seekSeconds > 0 && isFinite(audio.duration) && audio.duration > seekSeconds + 1) {
+              audio.currentTime = seekSeconds;
+            }
+          } catch (_) {}
+          audio.removeEventListener('loadedmetadata', seekOnce);
+        };
+        if (seekSeconds > 0) audio.addEventListener('loadedmetadata', seekOnce);
+        tryPlay();
+        lastPlayedKey = k;
+      }
     }
   } else if (item.kind === 'dj') {
     if (item.say && item.say.trim()) $('dj-line').textContent = item.say;
     if (item.src && djEnabled) {
-      audio.src = item.src.startsWith('/') ? item.src : `/audio/tts/${item.src.split('/').pop()}`;
-      tryPlay();
+      const k = itemKey(item);
+      if (k !== lastPlayedKey) {
+        audio.src = item.src.startsWith('/') ? item.src : `/audio/tts/${item.src.split('/').pop()}`;
+        tryPlay();
+        lastPlayedKey = k;
+      }
     }
   }
 }
@@ -468,6 +489,10 @@ async function bootstrap() {
 }
 
 audio.addEventListener('ended', () => {
+  // The just-finished item's key is still in lastPlayedKey. If the server
+  // hasn't transitioned yet, /api/now will hand us the same item — setNow's
+  // guard then no-ops, leaving the audio silent (correct) until the server
+  // moves on and the WS now-playing event arrives with the next item.
   fetch('/api/now').then(r => r.json()).then(j => j.current && setNow(j.current));
 });
 
