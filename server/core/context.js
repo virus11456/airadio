@@ -102,6 +102,7 @@ export async function buildContext(userInput, opts = {}) {
     '## 收藏種子', playlists,
     '## 環境', env,
     '## 記憶（最近播放）', memory,
+    '## DJ 最近講過（重要：請勿重複以下任一句的內容或開頭）', recentDjSays.map(s => '- ' + s).join('\n') || '（還沒講過）',
     '## 軌跡', trace,
   ].filter(Boolean).join('\n\n');
 

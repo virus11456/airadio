@@ -43,8 +43,21 @@ async function refill(hint = '') {
     plan = localFallback({ recentPlays: state.recentPlays(20), hint });
   }
 
-  // 1) DJ talk segment first (if any)
+  // 1) DJ talk segment first (if any) - with dedup
+  const _recentDj = (state.recentMessages(20) || [])
+    .filter(m => m && m.role === 'dj').slice(0, 3).map(m => (m.content||'').trim());
+  const _isDup = plan.say && _recentDj.some(old =>
+    !!old && (
+      old === plan.say.trim() ||
+      (old.length >= 18 && plan.say.trim().slice(0, 18) === old.slice(0, 18))
+    )
+  );
+  if (_isDup) {
+    console.warn('[dj] duplicate say detected, skipping DJ block:', plan.say.slice(0,40));
+    plan.say = '';
+  }
   if (plan.say && plan.say.trim()) {
+    state.recordMessage('dj', plan.say.trim());
     let ttsPath = null;
     state.beat('dj');
     try { ttsPath = await synthesize(plan.say); }

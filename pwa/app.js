@@ -48,6 +48,21 @@ function tryPlay() {
 function setNow(item) {
   currentItem = item;
   if (!item) return;
+  // Update Media Session for lock-screen / notification controls
+  if ('mediaSession' in navigator && item.kind === 'music') {
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: item.title || '',
+        artist: item.artist || '',
+        album: 'AIRADIO.FM · シティポップ',
+        artwork: [{ src: '/icon-512.png', sizes: '512x512', type: 'image/png' }],
+      });
+      navigator.mediaSession.setActionHandler('play',  () => audio.play().catch(()=>{}));
+      navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+      navigator.mediaSession.setActionHandler('stop',  () => audio.pause());
+      navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
+    } catch (_) {}
+  }
   if (item.kind === 'music') {
     $('now-title').textContent = item.title || '—';
     $('now-artist').textContent = item.artist || '';
