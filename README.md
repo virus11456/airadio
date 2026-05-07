@@ -107,6 +107,26 @@
 - [x] 250ms 防 spam cooldown、最多 80 顆同時飄
 - [x] 用 normalised 0..1 座標，不同 viewport 大小都對齊
 
+### 4-Mode Stage 劇場（封面那塊變身）
+中間那塊不再是一張靜態圖，而是隨「電台正在做什麼」自動切視覺：
+
+| Mode | 觸發 | 視覺 |
+|---|---|---|
+| 🎵 **MUSIC** | 在播音樂 | 12 吋黑膠盤旋轉、AI 封面當中央標籤紙、唱針在右側待機。Mute 時黑膠停轉，unmute 繼續轉 |
+| 📮 **MAILBAG** | DJ 在唸聽眾來信（`item.repliedTo` 非空） | 牛皮紙信封打開、信紙從中浮出、上面顯示 `#id` + sender + 信件內容 |
+| 🎙 **ON AIR** | DJ 純串場（沒回信） | 復古麥克風 + 紅色 `ON AIR` 招牌閃爍 + 8 條 VU bars |
+| 🌙 **DREAM** | 凌晨 1-5 點在播音樂 | 夜空漸層 + 月亮（含 craters）+ 淡淡星光 + 歌名飄在月下 |
+
+切換邏輯：
+- `setNow(item)` 算 `detectMode(item)` → 設 `<div class="stage" data-mode="...">`
+- CSS opacity transition 600ms 切換 `.scene-music / .scene-mailbag / .scene-onair / .scene-dream`
+- 60 秒輪詢 re-evaluate（讓跨 1am 的歌自然從 MUSIC 滑進 DREAM）
+- Heart Rain canvas、reaction bar、tap hint 全部仍在最上層獨立運作，跟 mode 無關
+
+伺服器送什麼到前端：
+- DJ 段附帶 `repliedToLetters: [{id, sender, content}]`（`server/workers/dj.js` 從 `state.getMessageById` 撈）
+- PWA `setStage('mailbag', item)` 讀第一封塞進信紙
+
 ### 聽眾來信 + DJ 回信（Claudio 真的會點名你）
 - [x] PWA 輸入框語意：「寄信給老 C」（不再是 chat）
 - [x] `POST /api/chat`（帶 `X-Client-Id`）非命令文字 → 寫進 `messages` 表 `role='fan'`、`addressed=0`
