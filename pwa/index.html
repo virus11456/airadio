@@ -224,6 +224,7 @@
     @keyframes fbpulse { 0%{transform:scale(1);} 50%{transform:scale(1.18);} 100%{transform:scale(1);} }
 
     /* ============ CLAUDIO BOOTH — pixel character ============ */
+    /* —— Recording studio booth —— */
     .booth {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
@@ -231,48 +232,85 @@
       border-radius: inherit;
       overflow: hidden;
       background:
-        /* soft floor shadow */
-        radial-gradient(ellipse at 50% 95%, rgba(0,0,0,0.20) 0%, transparent 55%),
-        /* warm wall */
-        linear-gradient(180deg, #F2C8A0 0%, #E5A878 60%, #C8865C 100%);
+        /* soft warm spotlight on Claudio (cool wall vs warm subject pop) */
+        radial-gradient(circle at 50% 78%, rgba(255,210,150,0.22) 0%, transparent 45%),
+        /* edge vignette to focus inward */
+        radial-gradient(ellipse at 50% 50%, transparent 38%, rgba(0,0,0,0.55) 100%),
+        /* dark cool studio wall base */
+        linear-gradient(180deg, #1F2A38 0%, #16202C 60%, #0F1820 100%);
     }
-    /* Day-time tint variation by hour group via class set in JS */
-    .booth.dawn   { background: radial-gradient(ellipse at 50% 95%, rgba(0,0,0,0.25) 0%, transparent 55%), linear-gradient(180deg, #FFE5C0 0%, #FFC598 55%, #C49E78 100%); }
-    .booth.day    { background: radial-gradient(ellipse at 50% 95%, rgba(0,0,0,0.18) 0%, transparent 55%), linear-gradient(180deg, #F0DCB8 0%, #DCB890 60%, #B8956A 100%); }
-    .booth.dusk   { background: radial-gradient(ellipse at 50% 95%, rgba(0,0,0,0.25) 0%, transparent 55%), linear-gradient(180deg, #F2C8A0 0%, #E5A878 55%, #C46850 100%); }
-    .booth.night  { background: radial-gradient(ellipse at 50% 95%, rgba(0,0,0,0.45) 0%, transparent 55%), linear-gradient(180deg, #2D2A52 0%, #1F1E3F 60%, #14132B 100%); }
+    /* Acoustic foam wedges — diamond pyramid pattern via crossed linear gradients.
+       Layered above the base wall, softer at the top, denser at the bottom. */
+    .booth::before {
+      content: ''; position: absolute; inset: 0;
+      background-color: #232C3A;
+      background-image:
+        linear-gradient(45deg,  #2C3848 25%, transparent 25%),
+        linear-gradient(-45deg, #2C3848 25%, transparent 25%),
+        linear-gradient(45deg,  transparent 75%, #1B232E 75%),
+        linear-gradient(-45deg, transparent 75%, #1B232E 75%);
+      background-size: 22px 22px;
+      background-position: 0 0, 0 11px, 11px -11px, -11px 0;
+      opacity: 0.42;
+      mix-blend-mode: overlay;
+      pointer-events: none;
+      z-index: 1;
+    }
+    /* A floor plank line so the room has a sense of ground */
+    .booth::after {
+      content: ''; position: absolute;
+      bottom: 0; left: 0; right: 0; height: 16%;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 60%, rgba(0,0,0,0) 100%);
+      pointer-events: none;
+      z-index: 2;
+    }
+    /* Day/night class system from earlier is now ignored — a real studio
+       looks the same any time of day. We keep the rules so existing JS
+       doesn't error, just no-op. */
+    .booth.dawn, .booth.day, .booth.dusk, .booth.night { background: inherit; }
 
-    /* —— small window (top right) showing sky —— */
+    /* —— Control-room glass partition (top right). Behind it: mixing board. —— */
     .booth-window {
       position: absolute;
-      top: 6%; right: 4%;
-      width: 22%; aspect-ratio: 1.2/1;
-      background: linear-gradient(180deg, #87CEEB 0%, #FFB78D 60%, #FF7A5A 100%);
+      top: 5%; right: 4%;
+      width: 26%; aspect-ratio: 1.6/1;
+      background:
+        /* Warm light leak from the control room */
+        radial-gradient(ellipse at 30% 60%, rgba(255,200,140,0.35) 0%, transparent 60%),
+        linear-gradient(180deg, #2A4A6B 0%, #1A2E45 100%);
       border: 3px solid #1a2230;
-      box-shadow: 3px 3px 0 #1a2230;
+      box-shadow: 3px 3px 0 #1a2230, 0 0 0 1px rgba(255,255,255,0.06) inset;
       z-index: 3;
       overflow: hidden;
     }
-    .booth-window::before { /* sun */
+    /* Mixing board silhouette: rows of pixel knobs + LED strip */
+    .booth-window::before {
       content: ''; position: absolute;
-      bottom: 28%; left: 50%; transform: translateX(-50%);
-      width: 50%; aspect-ratio: 1; border-radius: 50%;
-      background: radial-gradient(circle, #FFE8A0 0%, #FF9968 100%);
-      box-shadow: 0 0 10px rgba(255,200,150,0.7);
+      bottom: 14%; left: 8%; right: 8%;
+      height: 36%;
+      background:
+        /* Knob row (small dots) */
+        radial-gradient(circle at 10% 30%, #1a1a1a 0 1.5px, transparent 1.6px),
+        radial-gradient(circle at 22% 30%, #1a1a1a 0 1.5px, transparent 1.6px),
+        radial-gradient(circle at 34% 30%, #1a1a1a 0 1.5px, transparent 1.6px),
+        radial-gradient(circle at 46% 30%, #1a1a1a 0 1.5px, transparent 1.6px),
+        radial-gradient(circle at 58% 30%, #1a1a1a 0 1.5px, transparent 1.6px),
+        radial-gradient(circle at 70% 30%, #1a1a1a 0 1.5px, transparent 1.6px),
+        radial-gradient(circle at 82% 30%, #1a1a1a 0 1.5px, transparent 1.6px),
+        /* Fader strips */
+        repeating-linear-gradient(
+          90deg,
+          #2a2a2a 0px, #2a2a2a 2px, transparent 2px, transparent 8px
+        ),
+        linear-gradient(180deg, #1f1f23 0%, #0f0f12 100%);
     }
-    .booth-window::after { /* horizon */
+    /* LED strip on top of mixer */
+    .booth-window::after {
       content: ''; position: absolute;
-      bottom: 0; left: 0; right: 0; height: 22%;
-      background: linear-gradient(180deg, rgba(80,50,30,0.25), rgba(40,20,10,0.4));
-      border-top: 1px solid rgba(255,255,255,0.2);
-    }
-    .booth.night .booth-window {
-      background: linear-gradient(180deg, #0E0E2C 0%, #1F1E3F 100%);
-    }
-    .booth.night .booth-window::before {
-      background: radial-gradient(circle, #FFFAEC 0%, #D9C898 100%); /* moon */
-      bottom: 38%;
-      box-shadow: 0 0 10px rgba(255,250,230,0.5);
+      top: 18%; left: 10%; width: 18%; height: 6%;
+      background: linear-gradient(90deg, #3DD66A 0%, #3DD66A 30%, #F5D547 30%, #F5D547 65%, #E63938 65%, #E63938 100%);
+      box-shadow: 0 0 4px rgba(255,255,255,0.25);
     }
 
     /* —— ON AIR sign (top left) —— */
@@ -331,6 +369,56 @@
       image-rendering: -moz-crisp-edges;
       image-rendering: crisp-edges;
     }
+
+    /* —— Studio monitors flanking Claudio —— */
+    .booth-monitor {
+      position: absolute;
+      bottom: 8%;
+      width: 14%; aspect-ratio: 3/4;
+      background:
+        linear-gradient(180deg, #1f1f25 0%, #0e0e12 100%);
+      border: 2px solid #1a2230;
+      box-shadow: 3px 3px 0 #1a2230;
+      z-index: 4;
+    }
+    .booth-monitor.monitor-l { left: 4%;  transform: rotate(-2deg); }
+    .booth-monitor.monitor-r { right: 4%; transform: rotate( 2deg); }
+    .booth-monitor .cone {
+      position: absolute;
+      top: 14%; left: 50%; transform: translateX(-50%);
+      width: 64%; aspect-ratio: 1; border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 40%, #4A4A52 0%, #1A1A20 70%, #0A0A10 100%);
+      box-shadow: 0 0 0 2px #2a2a30 inset, 0 0 0 1px #000;
+    }
+    .booth-monitor .cone::before {  /* dust cap */
+      content: ''; position: absolute;
+      top: 35%; left: 35%; width: 30%; aspect-ratio: 1;
+      border-radius: 50%;
+      background: radial-gradient(circle, #6A6A72 0%, #2A2A30 100%);
+    }
+    .booth-monitor .led {
+      position: absolute;
+      bottom: 6%; left: 50%; transform: translateX(-50%);
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #3DD66A;
+      box-shadow: 0 0 6px #3DD66A;
+    }
+
+    /* —— Pop filter in front of the mic head —— */
+    .booth-mic .pop-filter {
+      position: absolute;
+      top: 18%; left: 50%; transform: translateX(-50%);
+      width: 110%; aspect-ratio: 1; border-radius: 50%;
+      background: radial-gradient(circle at 50% 50%, rgba(40,40,40,0.55) 0%, rgba(40,40,40,0.65) 60%, rgba(60,60,60,0.85) 70%, transparent 72%);
+      border: 2px solid #1a1a1a;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
+      pointer-events: none;
+    }
+    /* The mic-head itself was opaque; lighten the pop filter so the mic
+       still reads through it */
+    .booth-mic .mic-head { z-index: 1; }
+    .booth-mic .pop-filter { z-index: 2; opacity: 0.55; }
 
     /* —— A few pinned letters on the wall (top-left, under ON AIR) —— */
     .booth-pin-letters {
@@ -1121,8 +1209,13 @@
             </svg>
           </div>
 
+          <!-- Studio monitor speakers flanking Claudio -->
+          <div class="booth-monitor monitor-l"><div class="cone"></div><div class="led"></div></div>
+          <div class="booth-monitor monitor-r"><div class="cone"></div><div class="led"></div></div>
+
           <div class="booth-mic">
             <div class="mic-head"></div>
+            <div class="pop-filter"></div>
             <div class="mic-stand"></div>
           </div>
         </div>
