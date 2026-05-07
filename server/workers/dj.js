@@ -82,6 +82,12 @@ async function refill(hint = '') {
     state.beat('dj');
     try { ttsPath = await synthesize(plan.say); }
     catch (e) { console.warn('[dj] tts failed:', e.message); }
+    // Pull the actual letter bodies for the front-end mailbag scene.
+    const repliedToLetters = toMark
+      .map(id => state.getMessageById?.(id))
+      .filter(m => m && m.role === 'fan')
+      .map(m => ({ id: m.id, sender: (m.sender || 'anon').slice(0, 8), content: m.content || '', ts: m.ts }));
+
     queue.push({
       kind: 'dj',
       say: plan.say,
@@ -89,8 +95,9 @@ async function refill(hint = '') {
       duration: estimateDurationMs(plan.say),
       reason: plan.reason,
       repliedTo: toMark,
+      repliedToLetters,
     });
-    publish(events.DJ_SAYING, { say: plan.say, src: ttsPath, repliedTo: toMark });
+    publish(events.DJ_SAYING, { say: plan.say, src: ttsPath, repliedTo: toMark, repliedToLetters });
   }
 
   // 2) Music items

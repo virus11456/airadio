@@ -70,29 +70,66 @@ function tryPlay() {
   });
 }
 
-// ---------- Cover image ----------
+// ---------- Stage / Cover ----------
 const coverEl = $('cover');
-const aiCoverImg = $('ai-cover');
+const stageEl = $('stage');
+const vinylEl = $('vinyl');
+const vinylLabel = $('vinyl-label');
+const letterWho = $('letter-who');
+const letterBody = $('letter-body');
+const dreamTitle = $('dream-title');
+
+// Default vinyl label (when no AI cover exists for the track)
+const DEFAULT_LABEL = '/icon-512.png';
 
 function setCover(url) {
-  if (!coverEl || !aiCoverImg) return;
-  if (url) {
-    if (aiCoverImg.dataset.src === url && coverEl.classList.contains('has-ai-cover')) return;
-    aiCoverImg.dataset.src = url;
-    aiCoverImg.onload = () => coverEl.classList.add('has-ai-cover');
-    aiCoverImg.onerror = () => coverEl.classList.remove('has-ai-cover');
-    aiCoverImg.src = url;
-  } else {
-    coverEl.classList.remove('has-ai-cover');
-    aiCoverImg.removeAttribute('src');
-    aiCoverImg.dataset.src = '';
+  if (!vinylLabel) return;
+  vinylLabel.src = url || DEFAULT_LABEL;
+}
+
+// 4-mode theater. Decide which scene to show based on the now-playing item
+// and local time of day. Music in deep night → DREAM; DJ block with replied
+// letters → MAILBAG; DJ block without letters → ON AIR; otherwise MUSIC.
+function detectMode(item) {
+  if (!item) return 'music';
+  if (item.kind === 'dj') {
+    return (item.repliedTo && item.repliedTo.length) ? 'mailbag' : 'onair';
+  }
+  if (item.kind === 'music') {
+    const h = new Date().getHours();
+    if (h >= 1 && h < 5) return 'dream';
+  }
+  return 'music';
+}
+
+function setStage(mode, item) {
+  if (!stageEl) return;
+  if (stageEl.dataset.mode !== mode) stageEl.dataset.mode = mode;
+
+  // Vinyl spin pause when audio is muted
+  if (vinylEl) vinylEl.classList.toggle('paused', !!audio.muted);
+
+  if (mode === 'mailbag' && item && Array.isArray(item.repliedToLetters) && item.repliedToLetters.length) {
+    const l = item.repliedToLetters[0];
+    if (letterWho)  letterWho.textContent  = `FROM #${l.id} · ${(l.sender || 'anon').slice(0, 8)}`;
+    if (letterBody) letterBody.textContent = (l.content || '').slice(0, 240);
+  }
+  if (mode === 'dream' && dreamTitle && item && item.kind === 'music') {
+    dreamTitle.textContent = `~ ${item.title || ''} ~`;
   }
 }
+
+// React to mute toggle so the vinyl visually stops with the sound
+if (audio) audio.addEventListener('volumechange', () => {
+  if (vinylEl) vinylEl.classList.toggle('paused', !!audio.muted);
+});
 
 // ---------- Now playing ----------
 function setNow(item) {
   currentItem = item;
   if (!item) return;
+
+  setStage(detectMode(item), item);
 
   if (item.kind === 'music') {
     $('now-title').textContent = item.title || '—';
@@ -497,6 +534,14 @@ audio.addEventListener('ended', () => {
 });
 
 bootstrap();
+
+// Time-of-day transitions (e.g. 1am hits while a music track is mid-play
+// → flip MUSIC → DREAM without waiting for the next now-playing event).
+setInterval(() => {
+  if (!currentItem) return;
+  const want = detectMode(currentItem);
+  if (stageEl && stageEl.dataset.mode !== want) setStage(want, currentItem);
+}, 60 * 1000);
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});

@@ -135,6 +135,7 @@ const stmts = {
   `),
   markAddressedById: db.prepare(`UPDATE messages SET addressed = 1 WHERE id = ?`),
   markAddressedOlderThan: db.prepare(`UPDATE messages SET addressed = 1 WHERE role = 'fan' AND ts < ? AND addressed = 0`),
+  getMessageById: db.prepare(`SELECT id, role, content, sender, ts, addressed FROM messages WHERE id = ?`),
 };
 
 export const state = {
@@ -221,6 +222,9 @@ export const state = {
     const cutoff = Date.now() - olderThanMs;
     const r = stmts.markAddressedOlderThan.run(cutoff);
     return r.changes || 0;
+  },
+  getMessageById(id) {
+    return stmts.getMessageById.get(Number(id)) || null;
   },
 };
 
