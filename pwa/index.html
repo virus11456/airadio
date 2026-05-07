@@ -209,7 +209,7 @@
       backdrop-filter: blur(6px);
       border: 1px solid rgba(26,46,58,0.15);
       border-radius: 12px;
-      padding: 22px 28px 22px 50px;
+      padding: 26px 22px 18px 22px;
       margin: 22px 0;
       font-family: 'Zpix', 'DotGothic16', monospace;
       font-weight: 400; font-size: 15px; line-height: 1.7;
@@ -219,17 +219,21 @@
       box-shadow: 0 4px 16px var(--shadow);
     }
     .dj-line::before {
-      content: '>';
-      position: absolute; top: -2px; left: 16px;
+      content: 'DJ.MSG';
+      position: absolute; top: -10px; left: 14px;
       font-family: 'Press Start 2P', monospace;
-      font-size: 64px; line-height: 1;
-      color: var(--accent-1);
-      opacity: 0.85;
+      font-size: 9px; line-height: 1;
+      letter-spacing: 0.18em;
+      color: #fff;
+      background: var(--accent-1);
+      padding: 4px 8px;
+      border-radius: 4px;
     }
     .dj-line:empty::after {
-      content: '...';
-      color: var(--ink); opacity: 0.35;
-      font-style: italic;
+      content: '[ STANDBY ... ]';
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px; letter-spacing: 0.2em;
+      color: var(--ink); opacity: 0.4;
     }
 
     /* ============ CONTROLS ============ */
