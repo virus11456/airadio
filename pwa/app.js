@@ -76,6 +76,7 @@ const boothEl = $('booth');
 const claudio = $('claudio');
 const vinylLabel = $('vinyl-label');
 const pinLetters = $('booth-pin-letters');
+const boothBubble = $('booth-bubble');
 
 const DEFAULT_LABEL = '/icon-512.png';
 
@@ -97,6 +98,20 @@ function setStage(item) {
   // Always blinking — keeps her alive even between events.
   claudio.classList.add('blinking');
   boothEl.classList.toggle('on-air', isDj);
+
+  // Speech bubble above Claudio with whatever she's saying right now.
+  if (boothBubble) {
+    if (isDj && item.say) {
+      const txt = String(item.say).slice(0, 80);
+      boothBubble.textContent = txt + (item.say.length > 80 ? '…' : '');
+      boothBubble.dataset.show = '1';
+      boothBubble.hidden = false;
+    } else {
+      boothBubble.dataset.show = '0';
+      // small delay so the fade-out plays
+      setTimeout(() => { if (boothBubble.dataset.show === '0') boothBubble.hidden = true; }, 280);
+    }
+  }
 
   // If DJ is replying to letters, re-render so the matching pinned ones glow.
   if (isDj && Array.isArray(item.repliedTo) && item.repliedTo.length) {
