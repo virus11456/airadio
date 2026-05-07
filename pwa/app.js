@@ -623,3 +623,74 @@ setInterval(() => {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
+
+
+// ============ PWA install hint ============
+// Mobile users only. Tells them why they should add the site to home
+// screen — Safari pauses audio in tabs when the screen locks, but PWA
+// standalone mode keeps it playing.
+(function setupInstallHint() {
+  const hint = document.getElementById('install-hint');
+  if (!hint) return;
+  const txt = document.getElementById('install-hint-text');
+  const closeBtn = document.getElementById('install-hint-close');
+  const installBtn = document.getElementById('install-hint-install');
+  if (!hint || !txt || !closeBtn || !installBtn) return;
+
+  const STORAGE_KEY = 'airadio.install-dismissed';
+  let dismissedAt = 0;
+  try { dismissedAt = Number(localStorage.getItem(STORAGE_KEY) || 0); } catch (_) {}
+  const oneWeek = 7 * 24 * 60 * 60 * 1000;
+  if (dismissedAt && Date.now() - dismissedAt < oneWeek) return;
+
+  const isStandalone = () =>
+    window.matchMedia?.('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true;
+  if (isStandalone()) return;
+
+  // Detect platform for the right wording
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  const isAndroid = /Android/.test(ua);
+  const isMobile = isIOS || isAndroid || window.matchMedia('(max-width: 760px)').matches;
+  if (!isMobile) return;
+
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.hidden = false;
+    txt.innerHTML = '熄屏想繼續聽？把 <b>AIRADIO</b> 安裝起來';
+  });
+
+  if (isIOS) {
+    txt.innerHTML = '熄屏想繼續聽？點 <b>分享</b> → <b>加到主畫面</b>';
+  }
+
+  hint.hidden = false;
+  setTimeout(() => hint.classList.add('show'), 300);
+
+  closeBtn.addEventListener('click', () => {
+    hint.classList.remove('show');
+    setTimeout(() => { hint.hidden = true; }, 360);
+    try { localStorage.setItem(STORAGE_KEY, String(Date.now())); } catch (_) {}
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    hint.classList.remove('show');
+    setTimeout(() => { hint.hidden = true; }, 360);
+    try { localStorage.setItem(STORAGE_KEY, String(Date.now())); } catch (_) {}
+  });
+
+  // Auto-hide after 25s if user ignores
+  setTimeout(() => {
+    if (hint.classList.contains('show')) {
+      hint.classList.remove('show');
+      setTimeout(() => { hint.hidden = true; }, 360);
+    }
+  }, 25000);
+})();
