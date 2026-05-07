@@ -467,13 +467,14 @@
     /* —— Speech bubble that pops above Claudio when DJ is talking —— */
     .booth-bubble {
       position: absolute;
-      top: 10%; left: 50%; transform: translateX(-50%) translateY(-4px);
-      max-width: 72%;
+      top: 8%; left: 50%; transform: translateX(-50%) translateY(-4px);
+      width: 76%;
+      max-width: 76%;
       background: var(--paper);
       color: var(--ink);
       font-family: 'Zpix', 'DotGothic16', monospace;
-      font-size: 11px; line-height: 1.4;
-      padding: 8px 12px;
+      font-size: 10px; line-height: 1.45;
+      padding: 7px 10px;
       border: 3px solid var(--ink);
       box-shadow: 4px 4px 0 var(--ink);
       z-index: 6;
@@ -481,6 +482,15 @@
       transition: opacity 220ms;
       text-align: center;
       image-rendering: pixelated;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      white-space: normal;
+      box-sizing: border-box;
+      max-height: 6.6em;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
     }
     .booth-bubble[data-show="1"] {
       opacity: 1;

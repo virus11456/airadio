@@ -1,6 +1,6 @@
 // Minimal service worker — shell cache only. Audio is streamed from server,
 // not cached here (size + freshness).
-const CACHE = 'claudio-shell-v9';
+const CACHE = 'claudio-shell-v10';
 const SHELL = ['/', '/index.html', '/app.js', '/manifest.json'];
 
 self.addEventListener('install', (e) => {
