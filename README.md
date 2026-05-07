@@ -107,25 +107,26 @@
 - [x] 250ms 防 spam cooldown、最多 80 顆同時飄
 - [x] 用 normalised 0..1 座標，不同 viewport 大小都對齊
 
-### DJ 工作台俯瞰視角（取代 4-mode stage）
-中間那塊變成從上往下看 Claudio 的 1990 廣播室桌面，所有元素 _同時_ 在動：
+### Claudio 像素角色（廣播室一角）
+中間那塊就是 Claudio 本人 — 一個 SVG 像素 DJ 坐在自己的廣播室裡。
 
 | 元素 | 表現 | 行為 |
 |---|---|---|
-| 🟫 **木紋桌面** | 深棕漸層 + grain bands + 暖光暈 | 永遠在那 |
-| 🕘 **LCD 時鐘** | 黃綠光 LED 風 `21:31`（左上） | 每 30 秒 tick |
-| 🔴 **ON AIR 招牌** | 紅色背景 + 像素字（右上） | DJ 講話時亮起 + 閃爍；其他時候淡 |
-| 💿 **黑膠唱盤** | LP + 紅圈標籤（AI 封面）+ 唱針 | 旋轉 360°/4s；audio mute 時停轉 |
-| 🎤 **麥克風** | Mesh head + 桿 + 底座 + tally 紅燈 | DJ 講話時 tally 燈亮且閃 |
-| 📼 **卡帶** | 1990 米色塑膠殼 + 兩個 reels + NEXT 標籤 | reels 持續轉、標籤顯示 `/api/next` 第一首音樂；無下首時 reels 停 |
-| 📍 **聽眾便條紙** | 4 張黃色 sticky note 釘在桌上、隨機旋轉 | 已回覆蓋紅戳 `✓ REPLIED`；DJ 正在念的那張會放大發光 |
-| ☕ **咖啡杯** | 角落小裝飾 | 純氛圍 |
+| 👧 **Claudio 角色** | SVG 像素半身像、黑髮 bob 頭、大眼睛+虹膜+睫毛+高光、粉腮紅、像素小微笑 | 永遠在眨眼（5.2s 週期）；DJ 講話時嘴一張一合（0.5s steps）；播音樂時頭上下微抖（0.7s）；mute 停止抖 |
+| 🎧 **耳機** | 黑色 over-ear + 紅 LED accent | 永遠戴著 |
+| 🔴 **ON AIR 招牌** | 紅底像素字（左上） | DJ 講話時亮起 + 閃爍；其他時候 40% 透明度 |
+| 🪟 **窗戶** | 小框 + 天空漸層（時段感應） | dawn / day / dusk / night 自動換配色，夜晚月亮、白天太陽 |
+| 🖼️ **AI cover 相框** | 牆上掛框、紅圈框 | 顯示當前播放的封面；DJ 段保留最後一張音樂封面 |
+| 📌 **聽眾便條紙** | 3 張黃色 sticky note 釘在牆上、隨機旋轉 | 已回覆蓋紅戳 `✓`；Claudio 正在念的那張放大 + 發黃光 |
+| 🎤 **桌前麥克風** | 小型 mesh head 麥（右下角，傾斜 -12°） | 純裝飾，不擋臉 |
+| 💬 **語言泡泡** | 紙質對話框（Claudio 頭頂） | DJ 講話時冒出，顯示她剛剛說的那段（限 80 字）|
 
 實作：
-- 單一 `.djdesk` 元素，CSS class `on-air` toggle 控制麥/招牌/紅燈
-- Vinyl `<img id="vinyl-label">` 直接吃 `item.cover`
-- 卡帶輪詢 `/api/next` 25 秒一次 + 每次 setNow
-- 便條紙輪詢 `/api/mail/recent`，DJ 段帶 `repliedTo: [ids]` 讓對應便條紙 `.highlight`
+- `.booth` 元素，CSS class `.on-air` / `.dawn|.day|.dusk|.night` toggle
+- `.claudio` SVG 用 `shape-rendering: crispEdges`、整個角色一個 SVG 內含 multiple state 群組（眼睛開/閉、嘴開/合）用 CSS opacity animation 切換
+- `setStage(item)`：toggle `.talking` / `.bobbing` / `.on-air`，更新 bubble，呼叫 `refreshPinLetters(item.repliedTo)`
+- 便條紙輪詢 `/api/mail/recent` 25 秒一次
+- 時段每 5 分鐘 re-evaluate（跨 dawn → day 邊界自動切色）
 - Heart Rain canvas、reaction bar、tap hint 仍在最上層獨立運作
 
 ### 聽眾來信 + DJ 回信（Claudio 真的會點名你）
