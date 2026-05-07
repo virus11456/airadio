@@ -70,16 +70,15 @@ function tryPlay() {
   });
 }
 
-// ---------- Stage / Cover ----------
+// ---------- DJ Desk ----------
 const coverEl = $('cover');
-const stageEl = $('stage');
-const vinylEl = $('vinyl');
+const deskEl = $('djdesk');
+const platterEl = $('desk-platter');
 const vinylLabel = $('vinyl-label');
-const letterWho = $('letter-who');
-const letterBody = $('letter-body');
-const dreamTitle = $('dream-title');
+const cassetteText = $('cassette-text');
+const lettersEl = $('desk-letters');
+const deskClock = $('desk-clock');
 
-// Default vinyl label (when no AI cover exists for the track)
 const DEFAULT_LABEL = '/icon-512.png';
 
 function setCover(url) {
@@ -87,49 +86,104 @@ function setCover(url) {
   vinylLabel.src = url || DEFAULT_LABEL;
 }
 
-// 4-mode theater. Decide which scene to show based on the now-playing item
-// and local time of day. Music in deep night → DREAM; DJ block with replied
-// letters → MAILBAG; DJ block without letters → ON AIR; otherwise MUSIC.
-function detectMode(item) {
-  if (!item) return 'music';
-  if (item.kind === 'dj') {
-    return (item.repliedTo && item.repliedTo.length) ? 'mailbag' : 'onair';
+// Update the desk for the currently playing item. The desk shows everything
+// at once (no mode switching), but its on-air light and the highlighted
+// letter change based on what Claudio is doing right now.
+function setStage(item) {
+  if (!deskEl) return;
+  // ON AIR = DJ is talking
+  deskEl.classList.toggle('on-air', !!(item && item.kind === 'dj'));
+  // Spin the platter unless muted
+  if (platterEl) platterEl.classList.toggle('paused', !!audio.muted);
+  // If DJ is replying to letters, re-render so the matching ones glow.
+  if (item && item.kind === 'dj' && Array.isArray(item.repliedTo) && item.repliedTo.length) {
+    refreshDeskLetters(item.repliedTo);
+  } else {
+    refreshDeskLetters([]);
   }
-  if (item.kind === 'music') {
-    const h = new Date().getHours();
-    if (h >= 1 && h < 5) return 'dream';
-  }
-  return 'music';
+  // Update cassette label with the next track from /api/next
+  refreshNextTrack();
 }
 
-function setStage(mode, item) {
-  if (!stageEl) return;
-  if (stageEl.dataset.mode !== mode) stageEl.dataset.mode = mode;
-
-  // Vinyl spin pause when audio is muted
-  if (vinylEl) vinylEl.classList.toggle('paused', !!audio.muted);
-
-  if (mode === 'mailbag' && item && Array.isArray(item.repliedToLetters) && item.repliedToLetters.length) {
-    const l = item.repliedToLetters[0];
-    if (letterWho)  letterWho.textContent  = `FROM #${l.id} · ${(l.sender || 'anon').slice(0, 8)}`;
-    if (letterBody) letterBody.textContent = (l.content || '').slice(0, 240);
-  }
-  if (mode === 'dream' && dreamTitle && item && item.kind === 'music') {
-    dreamTitle.textContent = `~ ${item.title || ''} ~`;
-  }
-}
-
-// React to mute toggle so the vinyl visually stops with the sound
 if (audio) audio.addEventListener('volumechange', () => {
-  if (vinylEl) vinylEl.classList.toggle('paused', !!audio.muted);
+  if (platterEl) platterEl.classList.toggle('paused', !!audio.muted);
 });
+
+// Letters pinned to the desk, refreshed every 25s and on each setStage call.
+let _deskLettersCache = [];
+async function refreshDeskLetters(highlightIds = []) {
+  if (!lettersEl) return;
+  try {
+    const r = await fetch('/api/mail/recent?limit=4');
+    if (!r.ok) return;
+    const j = await r.json();
+    _deskLettersCache = j.letters || [];
+  } catch (_) { /* keep cached */ }
+  renderDeskLetters(highlightIds);
+}
+function renderDeskLetters(highlightIds = []) {
+  if (!lettersEl) return;
+  if (!_deskLettersCache.length) {
+    lettersEl.innerHTML = '<div class="empty">— 桌上還沒人留言 —</div>';
+    return;
+  }
+  const rotations = ['-3deg', '2deg', '-1.5deg', '3deg', '-2.5deg', '1deg'];
+  const ids = new Set((highlightIds || []).map(Number));
+  const html = _deskLettersCache.slice(0, 4).map((l, i) => {
+    const rot = rotations[i % rotations.length];
+    const cls = [
+      'desk-letter',
+      l.addressed ? 'replied' : '',
+      ids.has(Number(l.id)) ? 'highlight' : '',
+    ].filter(Boolean).join(' ');
+    const content = (l.content || '').slice(0, 60);
+    return `<div class="${cls}" style="--rot:${rot}">
+      <span class="who">#${l.id} · ${escapeHtml(l.sender || 'anon')}</span>
+      ${escapeHtml(content)}
+    </div>`;
+  }).join('');
+  lettersEl.innerHTML = html;
+}
+
+// Cassette label = next track in the queue.
+async function refreshNextTrack() {
+  if (!cassetteText) return;
+  try {
+    const r = await fetch('/api/next');
+    if (!r.ok) return;
+    const j = await r.json();
+    const nextMusic = (j.queue || []).find(q => q.kind === 'music');
+    if (nextMusic) {
+      cassetteText.textContent = nextMusic.title || '—';
+      deskEl?.classList.remove('no-next');
+    } else {
+      cassetteText.textContent = '—';
+      deskEl?.classList.add('no-next');
+    }
+  } catch (_) {}
+}
+
+// Local clock on the desk top bar
+function tickDeskClock() {
+  if (!deskClock) return;
+  const n = new Date();
+  const hh = String(n.getHours()).padStart(2, '0');
+  const mm = String(n.getMinutes()).padStart(2, '0');
+  deskClock.textContent = `${hh}:${mm}`;
+}
+setInterval(tickDeskClock, 30 * 1000);
+tickDeskClock();
+
+// Initial desk content as soon as the page loads
+refreshDeskLetters();
+refreshNextTrack();
 
 // ---------- Now playing ----------
 function setNow(item) {
   currentItem = item;
   if (!item) return;
 
-  setStage(detectMode(item), item);
+  setStage(item);
 
   if (item.kind === 'music') {
     $('now-title').textContent = item.title || '—';
@@ -535,13 +589,15 @@ audio.addEventListener('ended', () => {
 
 bootstrap();
 
-// Time-of-day transitions (e.g. 1am hits while a music track is mid-play
-// → flip MUSIC → DREAM without waiting for the next now-playing event).
+// Periodic refresh: keep cassette + letters fresh even between events.
 setInterval(() => {
-  if (!currentItem) return;
-  const want = detectMode(currentItem);
-  if (stageEl && stageEl.dataset.mode !== want) setStage(want, currentItem);
-}, 60 * 1000);
+  refreshNextTrack();
+  if (currentItem && currentItem.kind === 'dj' && currentItem.repliedTo?.length) {
+    refreshDeskLetters(currentItem.repliedTo);
+  } else {
+    refreshDeskLetters([]);
+  }
+}, 25 * 1000);
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
