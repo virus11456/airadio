@@ -265,10 +265,10 @@
       pointer-events: none;
       z-index: 2;
     }
-    /* Day/night class system from earlier is now ignored — a real studio
-       looks the same any time of day. We keep the rules so existing JS
-       doesn't error, just no-op. */
-    .booth.dawn, .booth.day, .booth.dusk, .booth.night { background: inherit; }
+    /* Day/night class system from earlier is intentionally a no-op now —
+       a real studio looks the same any time of day. The classes still get
+       toggled by JS but no longer drive any styles, so the .booth base
+       background applies regardless of the hour. */
 
     /* —— Control-room glass partition (top right). Behind it: mixing board. —— */
     .booth-window {
