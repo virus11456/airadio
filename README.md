@@ -107,25 +107,35 @@
 - [x] 250ms 防 spam cooldown、最多 80 顆同時飄
 - [x] 用 normalised 0..1 座標，不同 viewport 大小都對齊
 
-### Claudio 廣播室（手繪像素圖 + CSS overlay 動畫）
-中間那塊是用戶提供的 1254×1254 像素藝術 PNG (`pwa/booth-bg.png`)。整張圖直接當 `background-size: cover` + `image-rendering: pixelated`，把 SVG 自畫的 Claudio / 麥 / 喇叭 / ON AIR 全拆掉。動的部分是 CSS 絕對定位的小色塊覆蓋在原圖上面：
+### Claudio 廣播室（手繪像素圖 + 自動日夜切換 + CSS overlay 動畫）
+用戶手繪的 1254×1254 像素藝術 PNG（`pwa/booth-bg-day.png` 跟 `pwa/booth-bg-night.png`）當 `.booth` 的背景。整張圖 `background-size: cover` + `image-rendering: pixelated`，所有 booth 內元素（Claudio、麥、書架、貓、窗、ON AIR）全部來自圖檔本身，不用 SVG 重畫。
+
+**日夜自動切換**
+
+| 時段 | 圖 | 視覺差異 |
+|---|---|---|
+| 5–19 點 | `booth-bg-day.png` | 窗外藍天+太陽+雲、地板有陽光、燈籠關 |
+| 19–5 點 | `booth-bg-night.png` | 窗外月亮+星星+城市燈、燈籠亮 |
+
+JS：`refreshBoothTime()` 抓 `new Date().getHours()`，設 `boothEl.dataset.time = "day"|"night"`。每 5 分鐘 re-eval。CSS 用 `.booth[data-time=…]` 切 `background-image`，1.2s 漸變交叉淡入。
+
+**CSS overlay 動畫（疊在圖上）**
 
 | 元素 | 觸發 | 動畫 |
 |---|---|---|
 | 🟥 **ON AIR 招牌** | DJ 講話時 (`.booth.on-air`) | 紅光 radial pulse `mix-blend: screen`，1.1s 週期 |
 | 👁 **Claudio 眼睛** | 永遠 (`.booth.blinking`) | 兩塊膚色矩形 0.3 秒蓋住眼睛，5.2s 週期 |
 | 👄 **Claudio 嘴** | DJ 講話時 (`.booth.talking`) | 暗色橢圓蓋住微笑、0.46s steps 開合 |
-| 🐈 **貓眼睛** | 永遠 | 兩個咖啡色小塊 7.3s 週期眨眼（尾巴留靜態 — 動畫版會多一條詭異的尾巴）|
-| ⭐ **窗戶星星** ×4 | 永遠 | 白色小圓點，staggered 3s twinkle |
-| 🟨 **窗戶城市燈** ×4 | 永遠 | 黃色小方塊隨機閃爍（3.8/5.0/4.2/6.0s 不同週期） |
+| 🐈 **貓眼睛** | 永遠 | 兩個咖啡色小塊 7.3s 週期眨眼（尾巴保留靜態，動畫版會多一條詭異尾巴）|
+| ⭐ **窗戶星星** ×4 | 夜間only | 白色小圓點 staggered twinkle，白天自動 `display: none` |
+| 🟨 **窗戶城市燈** ×4 | 夜間only | 黃色小方塊隨機閃爍，白天自動 `display: none` |
 | 🟢 **BEAT MODE LCD** | 永遠 | 綠光 radial 脈動，2.4s 呼吸 |
 | 💬 **語言泡泡** | DJ 講話時 | 紙質對話框（Claudio 頭頂）顯示 say 內容、4 行截斷 |
 
 技術：
-- 單一 `.booth` 元素，CSS class 控制狀態（`.blinking` 永遠、`.on-air` `.talking` 跟著 DJ）
-- 所有動畫覆蓋層用 `%` 定位，跟著背景圖 scale，不會跑版
-- `setStage(item)` toggle 對應 class
-- 切日夜（未來功能）：放兩張 `booth-bg-day.png` / `booth-bg-night.png`，用 `[data-time="day|night"]` selector 切 `background-image`
+- 單一 `.booth` 元素，CSS class 控制狀態（`.blinking` 永遠、`.on-air` `.talking` 跟著 DJ）+ `data-time` 控制日夜
+- 所有動畫覆蓋層用 `%` 定位，day/night 兩張圖構圖一致所以共用同一組座標
+- `setStage(item)` toggle 對應 class，`refreshBoothTime()` 設 data-time
 - Heart Rain canvas、reaction bar、tap hint 仍在最上層獨立運作
 
 
