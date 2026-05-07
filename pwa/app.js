@@ -88,16 +88,13 @@ function setCover(url) {
 // Mood = how Claudio is behaving right now. DJ talking → talking + tally light.
 // Music playing (and not muted) → bobs to beat. Otherwise just blinks idly.
 function setStage(item) {
-  if (!claudio || !boothEl) return;
-  const isDj    = !!(item && item.kind === 'dj');
-  const isMusic = !!(item && item.kind === 'music');
-  const muted   = !!audio.muted;
+  if (!boothEl) return;
+  const isDj = !!(item && item.kind === 'dj');
 
-  claudio.classList.toggle('talking', isDj);
-  claudio.classList.toggle('bobbing', isMusic && !muted);
-  // Always blinking — keeps her alive even between events.
-  claudio.classList.add('blinking');
+  // State classes drive the CSS overlay animations on the booth-bg image.
   boothEl.classList.toggle('on-air', isDj);
+  boothEl.classList.toggle('talking', isDj);
+  boothEl.classList.add('blinking');
 
   // Speech bubble above Claudio with whatever she's saying right now.
   if (boothBubble) {
@@ -143,19 +140,9 @@ async function refreshPinLetters(highlightIds = []) {
   } catch (_) { /* keep cached */ }
   renderPinLetters(highlightIds);
 }
-function renderPinLetters(highlightIds = []) {
-  return; // pin letters element no longer in the booth
-  if (!_pinLettersCache.length) { pinLetters.innerHTML = ''; return; }
-  const rotations = ['-3deg', '2deg', '-2.5deg'];
-  const ids = new Set((highlightIds || []).map(Number));
-  pinLetters.innerHTML = _pinLettersCache.slice(0, 3).map((l, i) => {
-    const cls = ['pin', l.addressed ? 'replied' : '', ids.has(Number(l.id)) ? 'highlight' : '']
-      .filter(Boolean).join(' ');
-    const content = (l.content || '').slice(0, 40);
-    return `<div class="${cls}" style="--rot:${rotations[i] || '0deg'}">
-      ${escapeHtml(content)}
-    </div>`;
-  }).join('');
+function renderPinLetters(_highlightIds = []) {
+  // pin letters element no longer in the booth — kept as a no-op
+  return;
 }
 
 refreshPinLetters();
