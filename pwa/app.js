@@ -1,26 +1,38 @@
 // Single-page PWA controller. One <audio> element. WS for live events.
-// Three views toggled by nav buttons. Profile writes back via PUT /api/taste.
+// Two views toggled by nav buttons. Like / Dislike feedback persists per
+// device via a localStorage clientId; AI cover image fades in when present.
 
 const $ = (id) => document.getElementById(id);
 const audio = $('audio');
 const status = $('status');
 
-// View switching
+// ---------- Anonymous client id (persists per device) ----------
+const CLIENT_ID = (() => {
+  const key = 'airadio.clientId';
+  let id = null;
+  try { id = localStorage.getItem(key); } catch (_) {}
+  if (!id) {
+    id = 'c-' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
+    try { localStorage.setItem(key, id); } catch (_) {}
+  }
+  return id;
+})();
+
+// ---------- View switching ----------
 document.querySelectorAll('nav button').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     btn.classList.add('active');
-    $(`view-${btn.dataset.view}`).classList.add('active');
-    if (btn.dataset.view === 'profile') loadProfile();
+    const view = $(`view-${btn.dataset.view}`);
+    if (view) view.classList.add('active');
   });
 });
 
-// --- Audio control ---
+// ---------- Audio ----------
 let djEnabled = true;
 let currentItem = null;
 
-// --- Autoplay overlay helper (browser autoplay policy) ---
 function showTapOverlay() {
   let ov = document.getElementById('tap-overlay');
   if (ov) return;
@@ -44,29 +56,53 @@ function tryPlay() {
   });
 }
 
+// ---------- Cover image ----------
+const coverEl = $('cover');
+const aiCoverImg = $('ai-cover');
 
+function setCover(url) {
+  if (!coverEl || !aiCoverImg) return;
+  if (url) {
+    if (aiCoverImg.dataset.src === url && coverEl.classList.contains('has-ai-cover')) return;
+    aiCoverImg.dataset.src = url;
+    aiCoverImg.onload = () => coverEl.classList.add('has-ai-cover');
+    aiCoverImg.onerror = () => coverEl.classList.remove('has-ai-cover');
+    aiCoverImg.src = url;
+  } else {
+    coverEl.classList.remove('has-ai-cover');
+    aiCoverImg.removeAttribute('src');
+    aiCoverImg.dataset.src = '';
+  }
+}
+
+// ---------- Now playing ----------
 function setNow(item) {
   currentItem = item;
   if (!item) return;
-  // Update Media Session for lock-screen / notification controls
-  if ('mediaSession' in navigator && item.kind === 'music') {
-    try {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: item.title || '',
-        artist: item.artist || '',
-        album: 'AIRADIO.FM · シティポップ',
-        artwork: [{ src: '/icon-512.png', sizes: '512x512', type: 'image/png' }],
-      });
-      navigator.mediaSession.setActionHandler('play',  () => audio.play().catch(()=>{}));
-      navigator.mediaSession.setActionHandler('pause', () => audio.pause());
-      navigator.mediaSession.setActionHandler('stop',  () => audio.pause());
-      navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
-    } catch (_) {}
-  }
+
   if (item.kind === 'music') {
     $('now-title').textContent = item.title || '—';
     $('now-artist').textContent = item.artist || '';
-    // keep Pac-Man canvas alive (do not overwrite cover)
+    setCover(item.cover || null);
+    showFeedback(item);
+    if ('mediaSession' in navigator) {
+      try {
+        const artwork = item.cover
+          ? [{ src: item.cover, sizes: '768x768', type: 'image/jpeg' },
+             { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }]
+          : [{ src: '/icon-512.png', sizes: '512x512', type: 'image/png' }];
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: item.title || '',
+          artist: item.artist || '',
+          album: 'AIRADIO.FM · シティポップ',
+          artwork,
+        });
+        navigator.mediaSession.setActionHandler('play',  () => audio.play().catch(()=>{}));
+        navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+        navigator.mediaSession.setActionHandler('stop',  () => audio.pause());
+        navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
+      } catch (_) {}
+    }
     if (item.src) {
       audio.src = item.src;
       tryPlay();
@@ -97,14 +133,99 @@ function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// --- Controls ---
+// ---------- Feedback (like / dislike) ----------
+const fbWrap = $('feedback');
+const btnLike = $('btn-like');
+const btnDislike = $('btn-dislike');
+const likeCountEl = $('like-count');
+const dislikeCountEl = $('dislike-count');
+let fbState = { trackId: null, mine: null, likes: 0, dislikes: 0 };
+
+function renderFeedback() {
+  if (!fbWrap) return;
+  if (likeCountEl)    likeCountEl.textContent = fbState.likes ?? 0;
+  if (dislikeCountEl) dislikeCountEl.textContent = fbState.dislikes ?? 0;
+  if (btnLike)    btnLike.classList.toggle('is-active', fbState.mine === 'like');
+  if (btnDislike) btnDislike.classList.toggle('is-active', fbState.mine === 'dislike');
+}
+
+async function showFeedback(item) {
+  if (!fbWrap || !item || !item.songId) {
+    if (fbWrap) fbWrap.hidden = true;
+    return;
+  }
+  fbWrap.hidden = false;
+  fbState = { trackId: item.songId, mine: null, likes: 0, dislikes: 0 };
+  renderFeedback();
+  try {
+    const r = await fetch(`/api/feedback/${encodeURIComponent(item.songId)}`, {
+      headers: { 'X-Client-Id': CLIENT_ID },
+    });
+    if (!r.ok) return;
+    const j = await r.json();
+    fbState = { trackId: item.songId, mine: j.mine || null, likes: j.likes || 0, dislikes: j.dislikes || 0 };
+    renderFeedback();
+  } catch (_) { /* non-fatal */ }
+}
+
+async function sendFeedback(kind) {
+  if (!currentItem || currentItem.kind !== 'music' || !currentItem.songId) return;
+  const trackId = currentItem.songId;
+  const target = kind === 'like' ? btnLike : btnDislike;
+  const existed = fbState.mine === kind;
+  if (target) target.classList.add('pulse');
+  setTimeout(() => target && target.classList.remove('pulse'), 380);
+  try {
+    if (existed) {
+      // Toggle off
+      const r = await fetch(`/api/feedback/${encodeURIComponent(trackId)}`, {
+        method: 'DELETE',
+        headers: { 'X-Client-Id': CLIENT_ID },
+      });
+      if (!r.ok) throw new Error('http ' + r.status);
+      const j = await r.json();
+      fbState = { trackId, mine: null, likes: j.likes || 0, dislikes: j.dislikes || 0 };
+    } else {
+      const r = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Client-Id': CLIENT_ID },
+        body: JSON.stringify({
+          trackId,
+          kind,
+          title: currentItem.title || '',
+          artist: currentItem.artist || '',
+        }),
+      });
+      if (!r.ok) throw new Error('http ' + r.status);
+      const j = await r.json();
+      fbState = { trackId, mine: kind, likes: j.likes || 0, dislikes: j.dislikes || 0 };
+    }
+    renderFeedback();
+    showToast(existed ? '已取消' : (kind === 'like' ? '✓ 已按讚' : '✓ 已倒讚 · DJ 之後會避開'));
+  } catch (e) {
+    console.warn('feedback failed', e);
+    showToast('Feedback failed: ' + e.message);
+  }
+}
+
+if (btnLike)    btnLike.addEventListener('click', () => sendFeedback('like'));
+if (btnDislike) btnDislike.addEventListener('click', () => sendFeedback('dislike'));
+
+function showToast(text) {
+  let t = $('chat-toast');
+  if (!t) return;
+  t.textContent = text;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ---------- Mute toggle ----------
 $('btn-toggle').addEventListener('click', () => {
-  const a = $('audio');
-  a.muted = !a.muted;
-  $('btn-toggle').textContent = a.muted ? '[X] MUTED' : '[♪] LIVE';
+  audio.muted = !audio.muted;
+  $('btn-toggle').textContent = audio.muted ? '[X] MUTED' : '[♪] LIVE';
 });
 
-// --- Chat ---
+// ---------- Chat ----------
 $('chat-send').addEventListener('click', sendChat);
 $('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
 
@@ -121,8 +242,7 @@ async function sendChat() {
     });
     if (!r.ok) throw new Error('http ' + r.status);
     inp.value = '';
-    const t = $('chat-toast');
-    if (t) { t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000); }
+    showToast('✓ 訊息已送 · DJ 下個循環回應');
   } catch (e) {
     alert('送信失敗: ' + e.message);
   } finally {
@@ -130,44 +250,13 @@ async function sendChat() {
   }
 }
 
-
-// --- Profile ---
-async function loadProfile() {
-  const r = await fetch('/api/taste');
-  const data = await r.json();
-  $('profile-taste').value = data.taste || '';
-  $('profile-routines').value = data.routines || '';
-  $('profile-mood').value = data.mood || '';
-  $('profile-playlists').value = data.playlists || '';
-}
-
-$('profile-save').addEventListener('click', async () => {
-  const body = {
-    taste: $('profile-taste').value,
-    routines: $('profile-routines').value,
-    mood: $('profile-mood').value,
-    playlists: $('profile-playlists').value,
-  };
-  const r = await fetch('/api/taste', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const j = await r.json();
-  alert(j.ok ? '已儲存：' + j.updated.join(', ') : '失敗');
-});
-
-// --- Settings ---
-$('set-volume').addEventListener('input', e => {
-  audio.volume = e.target.value / 100;
-});
+// ---------- Settings ----------
+$('set-volume').addEventListener('input', e => { audio.volume = e.target.value / 100; });
 audio.volume = 0.8;
 
-$('set-dj').addEventListener('change', e => {
-  djEnabled = e.target.checked;
-});
+$('set-dj').addEventListener('change', e => { djEnabled = e.target.checked; });
 
-// --- WS ---
+// ---------- WebSocket ----------
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const ws = new WebSocket(`${proto}//${location.host}/stream`);
@@ -192,14 +281,14 @@ function handleEvent(msg) {
     case 'dj-saying': if (payload.say && payload.say.trim()) $('dj-line').textContent = payload.say; break;
     case 'plan-updated': console.log('plan updated'); break;
     case 'cmd':
-      if (payload.action === 'pause') { audio.pause(); $('btn-toggle').textContent = '▶︎'; }
+      if (payload.action === 'pause')  { audio.pause(); $('btn-toggle').textContent = '▶︎'; }
       if (payload.action === 'resume') { tryPlay(); $('btn-toggle').textContent = '⏸'; }
       break;
     case 'hello': status.textContent = `connected · ${new Date(payload.ts).toLocaleTimeString()}`; break;
   }
 }
 
-// --- Bootstrap ---
+// ---------- Bootstrap ----------
 async function bootstrap() {
   try {
     const now = await fetch('/api/now').then(r => r.json());
@@ -213,7 +302,6 @@ async function bootstrap() {
 }
 
 audio.addEventListener('ended', () => {
-  // Server-driven advancement; just nudge the WS in case we missed an event.
   fetch('/api/now').then(r => r.json()).then(j => j.current && setNow(j.current));
 });
 

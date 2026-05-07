@@ -86,8 +86,11 @@ async function refill(hint = '') {
         title: song.name,
         artist: song.artists.join(' / '),
         src: song.src,
+        cover: song.cover || null,
         duration: song.duration,
         reason: item.reason,
+        tags: song.tags || '',
+        playlistId: song.playlistId || null,
       });
     } catch (e) {
       console.warn('[dj] ncm failed for', item.query, e.message);

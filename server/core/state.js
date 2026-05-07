@@ -48,6 +48,22 @@ db.exec(`
     worker TEXT PRIMARY KEY,
     ts INTEGER NOT NULL
   );
+
+  -- One row per (track, kind). Anonymous-listener feedback is keyed
+  -- by client_id (set by the PWA via localStorage). Keeping it simple:
+  -- a thumbs-up overrides a thumbs-down for the same client + track,
+  -- so we just upsert.
+  CREATE TABLE IF NOT EXISTS feedback (
+    client_id TEXT NOT NULL,
+    track_id  TEXT NOT NULL,
+    kind      TEXT NOT NULL CHECK (kind IN ('like','dislike')),
+    title     TEXT,
+    artist    TEXT,
+    ts        INTEGER NOT NULL,
+    PRIMARY KEY (client_id, track_id)
+  );
+  CREATE INDEX IF NOT EXISTS feedback_track_idx ON feedback(track_id);
+  CREATE INDEX IF NOT EXISTS feedback_kind_idx  ON feedback(kind, ts DESC);
 `);
 
 const stmts = {
@@ -61,6 +77,42 @@ const stmts = {
   getPref: db.prepare('SELECT value FROM prefs WHERE key = ?'),
   upsertHeartbeat: db.prepare('INSERT INTO heartbeat (worker, ts) VALUES (?, ?) ON CONFLICT(worker) DO UPDATE SET ts=excluded.ts'),
   getHeartbeats: db.prepare('SELECT worker, ts FROM heartbeat'),
+
+  // Feedback
+  upsertFeedback: db.prepare(`
+    INSERT INTO feedback (client_id, track_id, kind, title, artist, ts)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(client_id, track_id) DO UPDATE SET
+      kind = excluded.kind, title = excluded.title, artist = excluded.artist, ts = excluded.ts
+  `),
+  deleteFeedback: db.prepare('DELETE FROM feedback WHERE client_id = ? AND track_id = ?'),
+  getFeedbackForTrack: db.prepare(`
+    SELECT
+      SUM(CASE WHEN kind='like' THEN 1 ELSE 0 END)    AS likes,
+      SUM(CASE WHEN kind='dislike' THEN 1 ELSE 0 END) AS dislikes
+    FROM feedback WHERE track_id = ?
+  `),
+  getMyFeedback: db.prepare('SELECT kind FROM feedback WHERE client_id = ? AND track_id = ?'),
+  topLiked: db.prepare(`
+    SELECT track_id, title, artist, COUNT(*) AS n, MAX(ts) AS latest
+    FROM feedback WHERE kind = 'like'
+    GROUP BY track_id, title, artist
+    ORDER BY latest DESC
+    LIMIT ?
+  `),
+  topDisliked: db.prepare(`
+    SELECT track_id, title, artist, COUNT(*) AS n, MAX(ts) AS latest
+    FROM feedback WHERE kind = 'dislike'
+    GROUP BY track_id, title, artist
+    ORDER BY latest DESC
+    LIMIT ?
+  `),
+  recentFeedback: db.prepare(`
+    SELECT client_id, track_id, kind, title, artist, ts
+    FROM feedback
+    ORDER BY ts DESC
+    LIMIT ?
+  `),
 };
 
 export const state = {
@@ -95,6 +147,34 @@ export const state = {
   },
   heartbeats() {
     return stmts.getHeartbeats.all();
+  },
+
+  // ---------- Feedback ----------
+  recordFeedback({ clientId, trackId, kind, title, artist }) {
+    if (!clientId || !trackId) throw new Error('clientId + trackId required');
+    if (!['like', 'dislike'].includes(kind)) throw new Error('kind must be like|dislike');
+    stmts.upsertFeedback.run(clientId, trackId, kind, title || null, artist || null, Date.now());
+  },
+  clearFeedback({ clientId, trackId }) {
+    stmts.deleteFeedback.run(clientId, trackId);
+  },
+  feedbackForTrack(trackId) {
+    const row = stmts.getFeedbackForTrack.get(trackId) || {};
+    return { likes: row.likes || 0, dislikes: row.dislikes || 0 };
+  },
+  myFeedback({ clientId, trackId }) {
+    if (!clientId) return null;
+    const row = stmts.getMyFeedback.get(clientId, trackId);
+    return row?.kind || null;
+  },
+  topLiked(limit = 10) {
+    return stmts.topLiked.all(limit);
+  },
+  topDisliked(limit = 10) {
+    return stmts.topDisliked.all(limit);
+  },
+  recentFeedback(limit = 20) {
+    return stmts.recentFeedback.all(limit);
   },
 };
 

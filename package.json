@@ -11,7 +11,10 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "probe:claude": "node probe-claude.js",
-    "probe:ncm": "node probe-ncm.js"
+    "probe:ncm": "node probe-ncm.js",
+    "covers": "node scripts/generate-covers.mjs",
+    "covers:force": "node scripts/generate-covers.mjs --force",
+    "suno:sync": "bash scripts/airadio-suno-sync.sh"
   },
   "dependencies": {
     "@fastify/static": "^7.0.4",

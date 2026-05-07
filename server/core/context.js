@@ -84,6 +84,23 @@ export async function buildContext(userInput, opts = {}) {
     ? recentPlays.map(p => `- ${p.title ?? '?'} / ${p.artist ?? '?'}`).join('\n')
     : '(尚無播放紀錄)';
 
+  // DJ recent dedup pool — was previously referenced but undefined.
+  const recentDjSays = (state.recentMessages(30) || [])
+    .filter(m => m && m.role === 'dj')
+    .slice(0, 5)
+    .map(m => (m.content || '').trim())
+    .filter(Boolean);
+
+  // Listener feedback — surfaces likes / dislikes so the DJ biases selection.
+  let likedSummary = '（尚無）';
+  let dislikedSummary = '（尚無）';
+  try {
+    const likes    = state.topLiked(8)    || [];
+    const dislikes = state.topDisliked(8) || [];
+    if (likes.length)    likedSummary    = likes.map(r => `- ${r.title || r.track_id}${r.artist ? ' / ' + r.artist : ''} (×${r.n})`).join('\n');
+    if (dislikes.length) dislikedSummary = dislikes.map(r => `- ${r.title || r.track_id}${r.artist ? ' / ' + r.artist : ''} (×${r.n})`).join('\n');
+  } catch (_) {}
+
   // ⑤ user input / tool result
   const input = userInput
     ? `用戶輸入: ${userInput}`
@@ -102,6 +119,8 @@ export async function buildContext(userInput, opts = {}) {
     '## 收藏種子', playlists,
     '## 環境', env,
     '## 記憶（最近播放）', memory,
+    '## 聽眾按讚（請優先排這類風格 / 同首歌可以多播）', likedSummary,
+    '## 聽眾倒讚（請避開以下歌曲 / 同類風格降低權重）', dislikedSummary,
     '## DJ 最近講過（重要：請勿重複以下任一句的內容或開頭）', recentDjSays.map(s => '- ' + s).join('\n') || '（還沒講過）',
     '## 軌跡', trace,
   ].filter(Boolean).join('\n\n');

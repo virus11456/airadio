@@ -75,6 +75,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SUNO_LIB_PATH = path.join(__dirname, '..', '..', 'user', 'suno-library.json');
+const COVER_DIR_FS = path.join(__dirname, '..', '..', 'cache', 'covers');
 let _sunoCache = null;
 let _sunoMtime = 0;
 function loadSuno() {
@@ -86,6 +87,15 @@ function loadSuno() {
     return _sunoCache;
   } catch { return []; }
 }
+function coverFor(id) {
+  // Static check is cheap; use existsSync so a missing cover doesn't break playback.
+  try {
+    if (fs.existsSync(path.join(COVER_DIR_FS, id + '.jpg'))) {
+      return '/covers/' + id + '.jpg';
+    }
+  } catch {}
+  return null;
+}
 function sunoToSong(c) {
   return {
     id: 'suno:' + c.id,
@@ -94,8 +104,10 @@ function sunoToSong(c) {
     duration: Math.round((c.duration || 0) * 1000),
     album: 'Suno Library',
     src: '/audio/suno/' + c.id + '.mp3',
+    cover: coverFor(c.id),
     br: 192000,
     tags: c.tags || '',
+    playlistId: c.playlist_id || null,
   };
 }
 function matchSunoByQuery(keywords) {

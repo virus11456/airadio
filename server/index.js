@@ -12,6 +12,7 @@ import nextRoutes from './routes/next.js';
 import tasteRoutes from './routes/taste.js';
 import planRoutes from './routes/plan.js';
 import streamRoutes from './routes/stream.js';
+import feedbackRoutes from './routes/feedback.js';
 
 import { djLoop } from './workers/dj.js';
 import { musicLoop } from './workers/music.js';
@@ -57,12 +58,25 @@ if (fs.existsSync(sunoDir)) {
   app.log.info(`suno library mounted at /audio/suno/ (${fs.readdirSync(sunoDir).length} files)`);
 }
 
+// AI cover art served at /covers/<id>.jpg
+const coversDir = path.join(ROOT, 'cache/covers');
+fs.mkdirSync(coversDir, { recursive: true });
+await app.register(staticPlugin, {
+  root: coversDir,
+  prefix: '/covers/',
+  decorateReply: false,
+  // Long cache: cover for a given track id never changes.
+  setHeaders: (res) => res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'),
+});
+app.log.info(`covers mounted at /covers/ (${fs.readdirSync(coversDir).length} files)`);
+
 await app.register(chatRoutes);
 await app.register(nowRoutes);
 await app.register(nextRoutes);
 await app.register(tasteRoutes);
 await app.register(planRoutes);
 await app.register(streamRoutes);
+await app.register(feedbackRoutes);
 
 app.get('/api/health', async () => ({ ok: true, ts: Date.now() }));
 
