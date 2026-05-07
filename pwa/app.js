@@ -73,10 +73,6 @@ function tryPlay() {
 // ---------- Claudio Booth ----------
 const coverEl = $('cover');
 const boothEl = $('booth');
-const claudio = $('claudio');
-const coverCanvas = $('cover-art');
-const coverCtx = coverCanvas?.getContext('2d');
-const pinLetters = $('booth-pin-letters');
 const boothBubble = $('booth-bubble');
 
 const DEFAULT_LABEL = '/icon-512.png';
@@ -173,7 +169,7 @@ refreshBoothTint();
 
 let _pinLettersCache = [];
 async function refreshPinLetters(highlightIds = []) {
-  if (!pinLetters) return;
+  return; // pin letters element no longer in the booth
   try {
     const r = await fetch('/api/mail/recent?limit=3');
     if (!r.ok) return;
@@ -183,7 +179,7 @@ async function refreshPinLetters(highlightIds = []) {
   renderPinLetters(highlightIds);
 }
 function renderPinLetters(highlightIds = []) {
-  if (!pinLetters) return;
+  return; // pin letters element no longer in the booth
   if (!_pinLettersCache.length) { pinLetters.innerHTML = ''; return; }
   const rotations = ['-3deg', '2deg', '-2.5deg'];
   const ids = new Set((highlightIds || []).map(Number));
