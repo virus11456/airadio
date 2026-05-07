@@ -70,14 +70,12 @@ function tryPlay() {
   });
 }
 
-// ---------- DJ Desk ----------
+// ---------- Claudio Booth ----------
 const coverEl = $('cover');
-const deskEl = $('djdesk');
-const platterEl = $('desk-platter');
+const boothEl = $('booth');
+const claudio = $('claudio');
 const vinylLabel = $('vinyl-label');
-const cassetteText = $('cassette-text');
-const lettersEl = $('desk-letters');
-const deskClock = $('desk-clock');
+const pinLetters = $('booth-pin-letters');
 
 const DEFAULT_LABEL = '/icon-512.png';
 
@@ -86,97 +84,77 @@ function setCover(url) {
   vinylLabel.src = url || DEFAULT_LABEL;
 }
 
-// Update the desk for the currently playing item. The desk shows everything
-// at once (no mode switching), but its on-air light and the highlighted
-// letter change based on what Claudio is doing right now.
+// Mood = how Claudio is behaving right now. DJ talking → talking + tally light.
+// Music playing (and not muted) → bobs to beat. Otherwise just blinks idly.
 function setStage(item) {
-  if (!deskEl) return;
-  // ON AIR = DJ is talking
-  deskEl.classList.toggle('on-air', !!(item && item.kind === 'dj'));
-  // Spin the platter unless muted
-  if (platterEl) platterEl.classList.toggle('paused', !!audio.muted);
-  // If DJ is replying to letters, re-render so the matching ones glow.
-  if (item && item.kind === 'dj' && Array.isArray(item.repliedTo) && item.repliedTo.length) {
-    refreshDeskLetters(item.repliedTo);
+  if (!claudio || !boothEl) return;
+  const isDj    = !!(item && item.kind === 'dj');
+  const isMusic = !!(item && item.kind === 'music');
+  const muted   = !!audio.muted;
+
+  claudio.classList.toggle('talking', isDj);
+  claudio.classList.toggle('bobbing', isMusic && !muted);
+  // Always blinking — keeps her alive even between events.
+  claudio.classList.add('blinking');
+  boothEl.classList.toggle('on-air', isDj);
+
+  // If DJ is replying to letters, re-render so the matching pinned ones glow.
+  if (isDj && Array.isArray(item.repliedTo) && item.repliedTo.length) {
+    refreshPinLetters(item.repliedTo);
   } else {
-    refreshDeskLetters([]);
+    refreshPinLetters([]);
   }
-  // Update cassette label with the next track from /api/next
-  refreshNextTrack();
 }
 
 if (audio) audio.addEventListener('volumechange', () => {
-  if (platterEl) platterEl.classList.toggle('paused', !!audio.muted);
+  if (claudio) claudio.classList.toggle('bobbing',
+    currentItem && currentItem.kind === 'music' && !audio.muted);
 });
 
-// Letters pinned to the desk, refreshed every 25s and on each setStage call.
-let _deskLettersCache = [];
-async function refreshDeskLetters(highlightIds = []) {
-  if (!lettersEl) return;
+// Day-time tint applied to the booth wall + window
+function refreshBoothTint() {
+  if (!boothEl) return;
+  const h = new Date().getHours();
+  let mode = 'day';
+  if (h >= 5 && h < 8)        mode = 'dawn';
+  else if (h >= 8 && h < 16)  mode = 'day';
+  else if (h >= 16 && h < 19) mode = 'dusk';
+  else                         mode = 'night';
+  for (const m of ['dawn','day','dusk','night']) {
+    boothEl.classList.toggle(m, m === mode);
+  }
+}
+setInterval(refreshBoothTint, 5 * 60 * 1000);
+refreshBoothTint();
+
+// Letters pinned to the booth wall, refreshed every 25s.
+let _pinLettersCache = [];
+async function refreshPinLetters(highlightIds = []) {
+  if (!pinLetters) return;
   try {
-    const r = await fetch('/api/mail/recent?limit=4');
+    const r = await fetch('/api/mail/recent?limit=3');
     if (!r.ok) return;
     const j = await r.json();
-    _deskLettersCache = j.letters || [];
+    _pinLettersCache = j.letters || [];
   } catch (_) { /* keep cached */ }
-  renderDeskLetters(highlightIds);
+  renderPinLetters(highlightIds);
 }
-function renderDeskLetters(highlightIds = []) {
-  if (!lettersEl) return;
-  if (!_deskLettersCache.length) {
-    lettersEl.innerHTML = '<div class="empty">— 桌上還沒人留言 —</div>';
-    return;
-  }
-  const rotations = ['-3deg', '2deg', '-1.5deg', '3deg', '-2.5deg', '1deg'];
+function renderPinLetters(highlightIds = []) {
+  if (!pinLetters) return;
+  if (!_pinLettersCache.length) { pinLetters.innerHTML = ''; return; }
+  const rotations = ['-3deg', '2deg', '-2.5deg'];
   const ids = new Set((highlightIds || []).map(Number));
-  const html = _deskLettersCache.slice(0, 4).map((l, i) => {
-    const rot = rotations[i % rotations.length];
-    const cls = [
-      'desk-letter',
-      l.addressed ? 'replied' : '',
-      ids.has(Number(l.id)) ? 'highlight' : '',
-    ].filter(Boolean).join(' ');
-    const content = (l.content || '').slice(0, 60);
-    return `<div class="${cls}" style="--rot:${rot}">
-      <span class="who">#${l.id} · ${escapeHtml(l.sender || 'anon')}</span>
+  pinLetters.innerHTML = _pinLettersCache.slice(0, 3).map((l, i) => {
+    const cls = ['pin', l.addressed ? 'replied' : '', ids.has(Number(l.id)) ? 'highlight' : '']
+      .filter(Boolean).join(' ');
+    const content = (l.content || '').slice(0, 40);
+    return `<div class="${cls}" style="--rot:${rotations[i] || '0deg'}">
       ${escapeHtml(content)}
     </div>`;
   }).join('');
-  lettersEl.innerHTML = html;
 }
 
-// Cassette label = next track in the queue.
-async function refreshNextTrack() {
-  if (!cassetteText) return;
-  try {
-    const r = await fetch('/api/next');
-    if (!r.ok) return;
-    const j = await r.json();
-    const nextMusic = (j.queue || []).find(q => q.kind === 'music');
-    if (nextMusic) {
-      cassetteText.textContent = nextMusic.title || '—';
-      deskEl?.classList.remove('no-next');
-    } else {
-      cassetteText.textContent = '—';
-      deskEl?.classList.add('no-next');
-    }
-  } catch (_) {}
-}
-
-// Local clock on the desk top bar
-function tickDeskClock() {
-  if (!deskClock) return;
-  const n = new Date();
-  const hh = String(n.getHours()).padStart(2, '0');
-  const mm = String(n.getMinutes()).padStart(2, '0');
-  deskClock.textContent = `${hh}:${mm}`;
-}
-setInterval(tickDeskClock, 30 * 1000);
-tickDeskClock();
-
-// Initial desk content as soon as the page loads
-refreshDeskLetters();
-refreshNextTrack();
+refreshPinLetters();
 
 // ---------- Now playing ----------
 function setNow(item) {
@@ -589,13 +567,12 @@ audio.addEventListener('ended', () => {
 
 bootstrap();
 
-// Periodic refresh: keep cassette + letters fresh even between events.
+// Periodic refresh: keep pinned letters fresh even between events.
 setInterval(() => {
-  refreshNextTrack();
   if (currentItem && currentItem.kind === 'dj' && currentItem.repliedTo?.length) {
-    refreshDeskLetters(currentItem.repliedTo);
+    refreshPinLetters(currentItem.repliedTo);
   } else {
-    refreshDeskLetters([]);
+    refreshPinLetters([]);
   }
 }, 25 * 1000);
 

@@ -223,53 +223,79 @@
     .feedback .pulse { animation: fbpulse 360ms ease; }
     @keyframes fbpulse { 0%{transform:scale(1);} 50%{transform:scale(1.18);} 100%{transform:scale(1);} }
 
-    /* ============ DJ DESK — overhead view ============ */
-    .djdesk {
+    /* ============ CLAUDIO BOOTH — pixel character ============ */
+    .booth {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
       z-index: 1;
       border-radius: inherit;
       overflow: hidden;
       background:
-        /* darker grain bands */
-        repeating-linear-gradient(0deg, rgba(0,0,0,0.04) 0px 1px, transparent 1px 5px),
-        /* wood-grain warm gradient */
-        radial-gradient(ellipse at 25% 60%, rgba(60,30,10,0.4) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 30%, rgba(150,90,40,0.3) 0%, transparent 60%),
-        linear-gradient(155deg, #6B4423 0%, #8B5A2B 45%, #5C3A1E 100%);
-      box-shadow: 0 8px 30px var(--shadow), 0 1px 0 rgba(255,255,255,0.07) inset;
+        /* soft floor shadow */
+        radial-gradient(ellipse at 50% 95%, rgba(0,0,0,0.20) 0%, transparent 55%),
+        /* warm wall */
+        linear-gradient(180deg, #F2C8A0 0%, #E5A878 60%, #C8865C 100%);
+    }
+    /* Day-time tint variation by hour group via class set in JS */
+    .booth.dawn   { background: radial-gradient(ellipse at 50% 95%, rgba(0,0,0,0.25) 0%, transparent 55%), linear-gradient(180deg, #FFE5C0 0%, #FFC598 55%, #C49E78 100%); }
+    .booth.day    { background: radial-gradient(ellipse at 50% 95%, rgba(0,0,0,0.18) 0%, transparent 55%), linear-gradient(180deg, #F0DCB8 0%, #DCB890 60%, #B8956A 100%); }
+    .booth.dusk   { background: radial-gradient(ellipse at 50% 95%, rgba(0,0,0,0.25) 0%, transparent 55%), linear-gradient(180deg, #F2C8A0 0%, #E5A878 55%, #C46850 100%); }
+    .booth.night  { background: radial-gradient(ellipse at 50% 95%, rgba(0,0,0,0.45) 0%, transparent 55%), linear-gradient(180deg, #2D2A52 0%, #1F1E3F 60%, #14132B 100%); }
+
+    /* —— small window (top right) showing sky —— */
+    .booth-window {
+      position: absolute;
+      top: 6%; right: 4%;
+      width: 22%; aspect-ratio: 1.2/1;
+      background: linear-gradient(180deg, #87CEEB 0%, #FFB78D 60%, #FF7A5A 100%);
+      border: 3px solid #4a3220;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.4) inset;
+      z-index: 3;
+      overflow: hidden;
+    }
+    .booth-window::before { /* sun */
+      content: ''; position: absolute;
+      bottom: 28%; left: 50%; transform: translateX(-50%);
+      width: 50%; aspect-ratio: 1; border-radius: 50%;
+      background: radial-gradient(circle, #FFE8A0 0%, #FF9968 100%);
+      box-shadow: 0 0 10px rgba(255,200,150,0.7);
+    }
+    .booth-window::after { /* horizon */
+      content: ''; position: absolute;
+      bottom: 0; left: 0; right: 0; height: 22%;
+      background: linear-gradient(180deg, rgba(80,50,30,0.25), rgba(40,20,10,0.4));
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+    .booth.night .booth-window {
+      background: linear-gradient(180deg, #0E0E2C 0%, #1F1E3F 100%);
+    }
+    .booth.night .booth-window::before {
+      background: radial-gradient(circle, #FFFAEC 0%, #D9C898 100%); /* moon */
+      bottom: 38%;
+      box-shadow: 0 0 10px rgba(255,250,230,0.5);
     }
 
-    /* —— top bar: clock + ON AIR sign —— */
-    .desk-top {
+    /* —— ON AIR sign (top left) —— */
+    .booth-onair {
       position: absolute;
-      top: 4%; left: 4%; right: 4%;
-      display: flex; justify-content: space-between; align-items: center;
-      gap: 8px; z-index: 6;
-    }
-    .desk-clock {
-      background: #0a0a0a;
-      color: #f5d547;
-      font-family: 'Press Start 2P', 'Zpix', monospace;
-      font-size: 9px; letter-spacing: 0.15em;
-      padding: 5px 10px;
-      border: 1px solid #333;
-      border-radius: 3px;
-      text-shadow: 0 0 6px rgba(245,213,71,0.4);
-      box-shadow: 0 1px 0 rgba(0,0,0,0.5);
-    }
-    .desk-onair {
+      top: 6%; left: 4%;
       background: var(--accent-1);
       color: #fff;
       font-family: 'Press Start 2P', 'Zpix', monospace;
       font-size: 9px; letter-spacing: 0.25em;
       padding: 5px 10px;
       border-radius: 3px;
-      box-shadow: 0 0 0 2px rgba(255,255,255,0.25) inset, 0 1px 0 rgba(0,0,0,0.4);
-      opacity: 0.35;
-      transition: opacity 200ms;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.25) inset, 0 2px 0 rgba(0,0,0,0.4);
+      opacity: 0.4;
+      transition: opacity 220ms;
+      z-index: 5;
     }
-    .djdesk.on-air .desk-onair {
+    .booth-onair .dot {
+      display: inline-block; width: 7px; height: 7px;
+      border-radius: 50%; background: #fff;
+      vertical-align: middle; margin-right: 4px;
+    }
+    .booth.on-air .booth-onair {
       opacity: 1;
       animation: blink-light 1.1s ease infinite;
     }
@@ -278,259 +304,147 @@
       50%     { opacity: 0.55; }
     }
 
-    /* —— turntable on the left —— */
-    .desk-turntable {
+    /* —— Small AI cover frame on wall (next to window) —— */
+    .booth-cover {
       position: absolute;
-      top: 17%; left: 4%;
-      width: 36%; aspect-ratio: 1;
-    }
-    .desk-turntable .platter {
-      position: absolute; inset: 0;
-      border-radius: 50%;
-      background:
-        radial-gradient(circle at 50% 50%, #1d1d1d 0%, #0a0a0a 70%, #050505 100%);
-      box-shadow:
-        0 4px 14px rgba(0,0,0,0.6),
-        0 0 0 4px #333,
-        0 0 0 5px rgba(0,0,0,0.4);
-      animation: spin360 4s linear infinite;
-    }
-    .desk-turntable .platter::before {
-      content: ''; position: absolute; inset: 4%;
-      border-radius: 50%;
-      background-image: repeating-radial-gradient(circle at center,
-        rgba(255,255,255,0.045) 0px,
-        rgba(255,255,255,0.045) 1px,
-        transparent 1px, transparent 4px);
-      pointer-events: none;
-    }
-    .desk-turntable .platter.paused { animation-play-state: paused; }
-    .desk-turntable .label {
-      position: absolute; top: 50%; left: 50%;
-      width: 38%; aspect-ratio: 1;
-      transform: translate(-50%, -50%);
-      border-radius: 50%;
-      object-fit: cover;
-      border: 3px solid var(--accent-1);
+      top: 30%; right: 6%;
+      width: 18%; aspect-ratio: 1;
       background: var(--paper);
-      z-index: 2;
+      border: 3px solid #4a3220;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.4) inset;
+      z-index: 3;
+      transform: rotate(-3deg);
+      overflow: hidden;
     }
-    .desk-turntable .center-hole {
-      position: absolute; top: 50%; left: 50%;
-      width: 4%; aspect-ratio: 1;
-      transform: translate(-50%, -50%);
-      border-radius: 50%;
-      background: #050505;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+    .booth-cover img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+
+    /* —— A few pinned letters on the wall (top-left, under ON AIR) —— */
+    .booth-pin-letters {
+      position: absolute;
+      top: 30%; left: 4%;
+      width: 22%;
+      display: flex; flex-direction: column; gap: 4px;
       z-index: 3;
     }
-    .desk-turntable .tonearm {
-      position: absolute;
-      top: -8%; right: -22%;
-      width: 6%; height: 70%;
-      background: linear-gradient(90deg, #444 0%, #aaa 50%, #555 100%);
-      border-radius: 3px;
-      transform-origin: top right;
-      transform: rotate(28deg);
-      z-index: 4;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    .booth-pin-letters .pin {
+      background: #FFF5C8;
+      color: #1a2230;
+      font-family: 'Zpix', 'DotGothic16', monospace;
+      font-size: 9px; line-height: 1.2;
+      padding: 4px 6px;
+      border: 1px solid rgba(0,0,0,0.18);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      transform: rotate(var(--rot, -2deg));
+      max-height: 36px; overflow: hidden;
+      position: relative;
     }
-    .desk-turntable .tonearm::after {
-      content: ''; position: absolute;
-      bottom: -4px; left: 50%; transform: translateX(-50%);
-      width: 12px; height: 12px;
-      background: #444; border-radius: 3px;
-      box-shadow: 0 0 0 2px rgba(0,0,0,0.6);
+    .booth-pin-letters .pin::before {
+      content: '📌';
+      position: absolute; top: -5px; left: 6px;
+      font-size: 10px;
     }
-    .djdesk.on-air .desk-turntable .tonearm,
-    .djdesk:not(.on-air) .desk-turntable .tonearm { transform: rotate(8deg); }
+    .booth-pin-letters .pin.replied {
+      background: linear-gradient(transparent 60%, rgba(217,56,30,0.07) 60%);
+      background-color: #FFF5C8;
+    }
+    .booth-pin-letters .pin.replied::after {
+      content: '✓';
+      position: absolute; top: -2px; right: -3px;
+      color: var(--accent-1);
+      font-family: 'Press Start 2P', 'Zpix', monospace;
+      font-size: 9px;
+      transform: rotate(8deg);
+      border: 1.5px solid var(--accent-1);
+      padding: 1px 3px;
+      background: rgba(255,255,255,0.85);
+    }
+    .booth-pin-letters .pin.highlight {
+      transform: rotate(0deg) scale(1.08);
+      box-shadow: 0 0 0 2px var(--accent-2), 0 0 12px rgba(245,213,71,0.55);
+      background: #fff8d0;
+    }
 
-    /* —— microphone in the centre —— */
-    .desk-mic {
+    /* —— Claudio character SVG —— */
+    .claudio-wrap {
       position: absolute;
-      top: 16%; left: 50%; transform: translateX(-50%);
-      width: 22%; aspect-ratio: 1/1.6;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 70%; aspect-ratio: 1;
       z-index: 4;
     }
-    .desk-mic .mic-head {
+    .claudio {
+      width: 100%; height: 100%; display: block;
+      shape-rendering: crispEdges;
+      transform-origin: 50% 75%;
+    }
+    .claudio rect, .claudio circle, .claudio ellipse, .claudio path {
+      shape-rendering: crispEdges;
+    }
+    /* Eyes (open by default; blink fades closed in) */
+    .claudio .eyes-closed { opacity: 0; }
+    .claudio.blinking .eyes-closed {
+      animation: blink-frames 5.2s ease-in-out infinite;
+    }
+    .claudio.blinking .eyes-open {
+      animation: blink-frames-open 5.2s ease-in-out infinite;
+    }
+    @keyframes blink-frames {
+      0%, 92%, 100% { opacity: 0; }
+      94%, 97%      { opacity: 1; }
+    }
+    @keyframes blink-frames-open {
+      0%, 92%, 100% { opacity: 1; }
+      94%, 97%      { opacity: 0; }
+    }
+    /* Mouth open/close (talking = repeated open) */
+    .claudio .mouth-open { opacity: 0; }
+    .claudio.talking .mouth-open {
+      animation: mouth-talk 0.5s steps(2) infinite;
+    }
+    .claudio.talking .mouth-closed {
+      animation: mouth-rest 0.5s steps(2) infinite;
+    }
+    @keyframes mouth-talk {
+      0%, 50%   { opacity: 0; }
+      51%, 100% { opacity: 1; }
+    }
+    @keyframes mouth-rest {
+      0%, 50%   { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+    /* Subtle head bob when music plays */
+    .claudio.bobbing { animation: head-bob 0.7s ease-in-out infinite; }
+    @keyframes head-bob {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-2px); }
+    }
+    /* Mic tally light — small red dot near mouth */
+    .claudio .tally { opacity: 0; }
+    .claudio.talking .tally { opacity: 1; animation: blink-light 1.1s ease infinite; }
+
+    /* —— Small mic in front of Claudio —— */
+    .booth-mic {
+      position: absolute;
+      bottom: 8%; left: 50%; transform: translateX(-50%);
+      width: 16%; aspect-ratio: 1/2;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .booth-mic .mic-head {
       position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-      width: 80%; aspect-ratio: 1;
+      width: 100%; aspect-ratio: 1;
       border-radius: 50% 50% 45% 45%;
       background:
         repeating-linear-gradient(0deg, #4a4a4a 0px, #4a4a4a 2px, #2a2a2a 2px, #2a2a2a 4px),
         radial-gradient(circle at 50% 30%, #999 0%, #333 100%);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.6), 0 0 0 2px #1a1a1a inset;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.5);
     }
-    .desk-mic .mic-stand {
+    .booth-mic .mic-stand {
       position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
-      width: 12%; height: 35%;
+      width: 12%; height: 50%;
       background: linear-gradient(90deg, #444 0%, #999 50%, #333 100%);
-      border-radius: 3px;
-    }
-    .desk-mic .mic-base {
-      position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
-      width: 60%; height: 6%;
-      background: #2a2a2a; border-radius: 50%;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.6);
-    }
-    .desk-mic .mic-light {
-      position: absolute; top: 12%; left: 50%; transform: translateX(-50%);
-      width: 14%; aspect-ratio: 1; border-radius: 50%;
-      background: #6a1a1a;
-      box-shadow: 0 0 0 1px #1a0808;
-      opacity: 0.5;
-      transition: opacity 200ms;
-    }
-    .djdesk.on-air .desk-mic .mic-light {
-      background: var(--accent-1);
-      opacity: 1;
-      box-shadow: 0 0 12px var(--accent-1), 0 0 0 1px #1a0808;
-      animation: blink-light 1.1s ease infinite;
-    }
-
-    /* —— cassette deck on the right —— */
-    .desk-cassette {
-      position: absolute;
-      top: 22%; right: 4%;
-      width: 30%; aspect-ratio: 1.45/1;
-      background: linear-gradient(155deg, #d8d0bc 0%, #b6ad95 100%);
-      border: 2px solid #2a2a2a;
-      border-radius: 4px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.4) inset;
-      padding: 6%;
-      z-index: 3;
-    }
-    .desk-cassette .cassette-label {
-      position: absolute;
-      top: 6%; left: 8%; right: 8%; height: 30%;
-      background: var(--paper);
-      border: 1px solid rgba(0,0,0,0.25);
-      font-family: 'Zpix', 'DotGothic16', monospace;
-      font-size: 9px; line-height: 1.2;
-      color: var(--ink);
-      padding: 3px 5px;
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-    }
-    .desk-cassette .cassette-label .next-tag {
-      display: inline-block;
-      background: var(--accent-1); color: #fff;
-      font-family: 'Press Start 2P', 'Zpix', monospace;
-      font-size: 6px; letter-spacing: 0.2em;
-      padding: 1px 3px; margin-right: 4px;
-      vertical-align: middle;
-    }
-    .desk-cassette .reels {
-      position: absolute;
-      bottom: 8%; left: 10%; right: 10%;
-      height: 50%;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .desk-cassette .reel {
-      width: 36%; aspect-ratio: 1;
-      border-radius: 50%;
-      background:
-        radial-gradient(circle at 50% 50%, #1a1a1a 0%, #0a0a0a 60%, #2a2a2a 65%, #1a1a1a 100%);
-      box-shadow: 0 0 0 2px #4a4a4a inset, 0 0 0 1px rgba(0,0,0,0.6);
-      position: relative;
-      animation: spin360 1.6s linear infinite;
-    }
-    .desk-cassette .reel::before {
-      content: ''; position: absolute; inset: 30%;
-      border-radius: 50%;
-      background: #2a2a2a;
-      box-shadow: 0 0 0 1px #555 inset;
-    }
-    .desk-cassette .reel::after {
-      content: ''; position: absolute;
-      top: 50%; left: 50%; transform: translate(-50%, -50%);
-      width: 70%; height: 4%;
-      background: #555;
-      box-shadow: 0 0 0 0 #555, 0 6px 0 0 transparent;
-    }
-    .djdesk.no-next .desk-cassette .reel { animation-play-state: paused; }
-    @keyframes spin360 {
-      to { transform: rotate(360deg); }
-    }
-
-    /* —— pinned listener letters —— */
-    .desk-letters {
-      position: absolute;
-      bottom: 4%; left: 4%; right: 4%;
-      display: flex; flex-wrap: wrap; gap: 6px;
-      align-items: flex-start; justify-content: flex-start;
-      max-height: 32%;
-      overflow: hidden;
-      z-index: 4;
-    }
-    .desk-letter {
-      position: relative;
-      background: #FFF5C8;
-      color: #1a2230;
-      font-family: 'Zpix', 'DotGothic16', monospace;
-      font-size: 10px; line-height: 1.35;
-      padding: 6px 8px 4px;
-      width: calc(50% - 4px);
-      border: 1px solid rgba(0,0,0,0.18);
-      box-shadow: 0 3px 6px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.6) inset;
-      transform: rotate(var(--rot, -2deg));
-      transition: transform 280ms ease, box-shadow 280ms ease, background 280ms ease;
-    }
-    .desk-letter::before {
-      content: '📍';
-      position: absolute; top: -6px; left: 8px;
-      font-size: 11px;
-      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
-    }
-    .desk-letter .who {
-      font-family: 'Press Start 2P', 'Zpix', monospace;
-      font-size: 7px; letter-spacing: 0.15em;
-      color: var(--accent-1); margin-bottom: 3px;
-      display: block;
-    }
-    .desk-letter.replied {
-      background: linear-gradient(transparent 55%, rgba(217,56,30,0.07) 55%);
-      background-color: #FFF5C8;
-    }
-    .desk-letter.replied::after {
-      content: '✓ REPLIED';
-      position: absolute; top: -2px; right: -4px;
-      color: var(--accent-1);
-      font-family: 'Press Start 2P', 'Zpix', monospace;
-      font-size: 7px; letter-spacing: 0.18em;
-      transform: rotate(8deg);
-      border: 1.5px solid var(--accent-1);
-      padding: 2px 4px;
-      background: rgba(255,255,255,0.85);
-    }
-    .desk-letter.highlight {
-      transform: rotate(0deg) scale(1.06);
-      z-index: 8;
-      box-shadow:
-        0 0 0 2px var(--accent-2),
-        0 0 14px rgba(245,213,71,0.55),
-        0 4px 10px rgba(0,0,0,0.4);
-      background: #fff8d0;
-    }
-    .desk-letters .empty {
-      width: 100%; text-align: center;
-      font-family: 'Press Start 2P', 'Zpix', monospace;
-      font-size: 8px; letter-spacing: 0.2em;
-      color: rgba(255,245,225,0.55);
-      padding: 8px 0;
-    }
-
-    /* —— decorative coffee cup in corner —— */
-    .desk-coffee {
-      position: absolute;
-      bottom: 3%; right: 4%;
-      font-size: 18px;
-      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
-      z-index: 5;
-      pointer-events: none;
-      transform: rotate(-6deg);
     }
 
     /* ============ HEART RAIN OVERLAY ============ */
@@ -935,32 +849,89 @@
       </div>
 
       <div class="cover" id="cover">
-        <div class="djdesk" id="djdesk">
-          <div class="desk-top">
-            <div class="desk-clock" id="desk-clock">--:--</div>
-            <div class="desk-onair">ON AIR ●</div>
+        <div class="booth" id="booth">
+          <div class="booth-onair"><span class="dot"></span>ON AIR</div>
+          <div class="booth-window"></div>
+          <div class="booth-cover"><img id="vinyl-label" alt="" /></div>
+          <div class="booth-pin-letters" id="booth-pin-letters"></div>
+
+          <div class="claudio-wrap">
+            <svg class="claudio blinking" id="claudio" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+              <!-- shoulders / shirt -->
+              <rect x="12" y="56" width="40" height="8" fill="#1F4F7C"/>
+              <rect x="14" y="58" width="36" height="1" fill="#13345A"/>
+              <!-- neck -->
+              <rect x="28" y="50" width="8" height="6" fill="#FFCBA4"/>
+              <rect x="28" y="50" width="8" height="1" fill="#E8B080"/>
+              <!-- hair back -->
+              <rect x="14" y="22" width="4" height="22" fill="#2D1B0E"/>
+              <rect x="46" y="22" width="4" height="20" fill="#2D1B0E"/>
+              <!-- face -->
+              <rect x="18" y="22" width="28" height="24" fill="#FFCBA4"/>
+              <rect x="16" y="24" width="2" height="18" fill="#FFCBA4"/>
+              <rect x="46" y="24" width="2" height="18" fill="#FFCBA4"/>
+              <rect x="20" y="46" width="24" height="4" fill="#FFCBA4"/>
+              <!-- chin shadow -->
+              <rect x="22" y="48" width="20" height="1" fill="#E8B080"/>
+              <!-- hair front (bangs) -->
+              <rect x="14" y="14" width="36" height="6" fill="#2D1B0E"/>
+              <rect x="16" y="12" width="32" height="4" fill="#2D1B0E"/>
+              <rect x="20" y="10" width="24" height="2" fill="#2D1B0E"/>
+              <rect x="14" y="20" width="4" height="6" fill="#2D1B0E"/>
+              <rect x="46" y="20" width="4" height="6" fill="#2D1B0E"/>
+              <rect x="18" y="20" width="6" height="4" fill="#2D1B0E"/>
+              <rect x="40" y="20" width="6" height="4" fill="#2D1B0E"/>
+              <rect x="30" y="20" width="6" height="2" fill="#2D1B0E"/>
+              <!-- eyes (open) -->
+              <g class="eyes-open">
+                <rect x="22" y="30" width="4" height="4" fill="#1A0F08"/>
+                <rect x="38" y="30" width="4" height="4" fill="#1A0F08"/>
+                <rect x="23" y="30" width="1" height="1" fill="#fff"/>
+                <rect x="39" y="30" width="1" height="1" fill="#fff"/>
+              </g>
+              <!-- eyes (closed) -->
+              <g class="eyes-closed">
+                <rect x="22" y="32" width="4" height="1" fill="#1A0F08"/>
+                <rect x="38" y="32" width="4" height="1" fill="#1A0F08"/>
+              </g>
+              <!-- eyebrows -->
+              <rect x="22" y="27" width="4" height="1" fill="#2D1B0E"/>
+              <rect x="38" y="27" width="4" height="1" fill="#2D1B0E"/>
+              <!-- cheeks -->
+              <rect x="20" y="38" width="3" height="2" fill="#FFA890" opacity="0.7"/>
+              <rect x="41" y="38" width="3" height="2" fill="#FFA890" opacity="0.7"/>
+              <!-- nose -->
+              <rect x="31" y="36" width="2" height="2" fill="#E8B080"/>
+              <!-- mouth (closed) -->
+              <g class="mouth-closed">
+                <rect x="29" y="42" width="6" height="1" fill="#A03B25"/>
+              </g>
+              <!-- mouth (open) -->
+              <g class="mouth-open">
+                <rect x="29" y="41" width="6" height="3" fill="#5A1A0A"/>
+                <rect x="30" y="42" width="4" height="1" fill="#A03020"/>
+              </g>
+              <!-- headphones band -->
+              <rect x="14" y="14" width="36" height="2" fill="#1A1A1A"/>
+              <rect x="16" y="12" width="32" height="2" fill="#1A1A1A"/>
+              <!-- headphones cans -->
+              <rect x="10" y="24" width="4" height="12" fill="#1A1A1A"/>
+              <rect x="50" y="24" width="4" height="12" fill="#1A1A1A"/>
+              <rect x="11" y="26" width="2" height="8" fill="#3A3A3A"/>
+              <rect x="51" y="26" width="2" height="8" fill="#3A3A3A"/>
+              <rect x="11" y="28" width="2" height="1" fill="#D9381E"/>
+              <rect x="51" y="28" width="2" height="1" fill="#D9381E"/>
+              <!-- tally light below mouth (only visible when talking) -->
+              <g class="tally">
+                <rect x="31" y="54" width="2" height="2" fill="#D9381E"/>
+              </g>
+            </svg>
           </div>
-          <div class="desk-turntable">
-            <div class="platter" id="desk-platter">
-              <img class="label" id="vinyl-label" alt="" />
-              <div class="center-hole"></div>
-            </div>
-            <div class="tonearm"></div>
-          </div>
-          <div class="desk-mic">
-            <div class="mic-light"></div>
+
+          <div class="booth-mic">
             <div class="mic-head"></div>
             <div class="mic-stand"></div>
-            <div class="mic-base"></div>
           </div>
-          <div class="desk-cassette" id="desk-cassette">
-            <div class="cassette-label" id="cassette-label"><span class="next-tag">NEXT</span><span id="cassette-text">—</span></div>
-            <div class="reels"><div class="reel"></div><div class="reel"></div></div>
-          </div>
-          <div class="desk-letters" id="desk-letters">
-            <div class="empty">— 桌上還沒人留言 —</div>
-          </div>
-          <div class="desk-coffee">☕</div>
         </div>
         <canvas id="hearts" width="480" height="480"></canvas>
         <div class="reaction-bar" id="reaction-bar">
