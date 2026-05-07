@@ -146,26 +146,16 @@ function setStage(item) {
   }
 }
 
-if (audio) audio.addEventListener('volumechange', () => {
-  if (claudio) claudio.classList.toggle('bobbing',
-    currentItem && currentItem.kind === 'music' && !audio.muted);
-});
-
-// Day-time tint applied to the booth wall + window
-function refreshBoothTint() {
+// Day/night booth background. 5–19 → day art, 19–5 → night art.
+// data-time attribute drives a CSS swap of /booth-bg-{day,night}.png.
+function refreshBoothTime() {
   if (!boothEl) return;
   const h = new Date().getHours();
-  let mode = 'day';
-  if (h >= 5 && h < 8)        mode = 'dawn';
-  else if (h >= 8 && h < 16)  mode = 'day';
-  else if (h >= 16 && h < 19) mode = 'dusk';
-  else                         mode = 'night';
-  for (const m of ['dawn','day','dusk','night']) {
-    boothEl.classList.toggle(m, m === mode);
-  }
+  const mode = (h >= 5 && h < 19) ? 'day' : 'night';
+  if (boothEl.dataset.time !== mode) boothEl.dataset.time = mode;
 }
-setInterval(refreshBoothTint, 5 * 60 * 1000);
-refreshBoothTint();
+refreshBoothTime();
+setInterval(refreshBoothTime, 5 * 60 * 1000);
 
 let _pinLettersCache = [];
 async function refreshPinLetters(highlightIds = []) {

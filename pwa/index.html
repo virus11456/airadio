@@ -231,9 +231,20 @@
       z-index: 1;
       border-radius: inherit;
       overflow: hidden;
-      background: #14181F url('/booth-bg.png') no-repeat center / cover;
+      background: #14181F url('/booth-bg-night.png') no-repeat center / cover;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
+      transition: background-image 1200ms ease-in-out;
+    }
+    .booth[data-time="day"]    { background-image: url('/booth-bg-day.png'); }
+    .booth[data-time="night"]  { background-image: url('/booth-bg-night.png'); }
+    /* During the day, the warm spotlight in the room shifts; lift the warm
+       overlay slightly to match the lit windows */
+    .booth[data-time="day"]::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 60%, rgba(255, 230, 180, 0.10) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 2;
     }
 
     /* —— Claudio eye blink (skin-tone covers the eyes briefly) —— */
@@ -316,6 +327,10 @@
       0%, 92%, 100% { opacity: 0; }
       94%, 97%      { opacity: 1; }
     }
+
+    /* —— Day/night context: hide night-only highlights when day is active —— */
+    .booth[data-time="day"] .star,
+    .booth[data-time="day"] .city-light { display: none; }
 
     /* —— Star twinkle in window —— */
     .booth .star {
@@ -873,7 +888,7 @@
       </div>
 
       <div class="cover" id="cover">
-        <div class="booth blinking" id="booth">
+        <div class="booth blinking" id="booth" data-time="night">
           <div class="booth-bubble" id="booth-bubble" hidden>—</div>
 
           <!-- Animated overlays sitting on top of booth-bg.png -->
