@@ -586,6 +586,25 @@ async function bootstrap() {
   connectWS();
 }
 
+// 30-second poll: in case the WS now-playing event was missed (background
+// tab, network blip, server restart) we refetch /api/now and let setNow's
+// guards either advance to a new track or no-op on the same one. Also kicks
+// playback if the audio is paused but server says music is current.
+setInterval(async () => {
+  try {
+    const j = await fetch('/api/now').then(r => r.json());
+    const c = j.current;
+    if (c) {
+      setNow(c);
+      // If server has music + we have a src + audio is paused but not muted,
+      // try to resume.
+      if (c.kind === 'music' && audio.src && audio.paused && !audio.muted) {
+        tryPlay();
+      }
+    }
+  } catch (_) { /* ignore */ }
+}, 30 * 1000);
+
 audio.addEventListener('ended', () => {
   // The just-finished item's key is still in lastPlayedKey. If the server
   // hasn't transitioned yet, /api/now will hand us the same item — setNow's

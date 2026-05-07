@@ -115,21 +115,62 @@ export async function callClaude({ system, user, model, signal } = {}) {
   return inner;
 }
 
-// Fallback used when the LLM is unreachable. Keeps the radio alive
-// by serving a deterministic plan derived from local seeds.
+// Fallback used when the LLM is unreachable. Keeps the radio alive by
+// pulling actual Suno track titles from user/suno-library.json — those are
+// guaranteed playable (mp3s already on disk). NCM-style queries can fail
+// when NCM is down; Suno can't.
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath as _fu } from 'node:url';
+const _dirname = path.dirname(_fu(import.meta.url));
+const _SUNO_LIB = path.join(_dirname, '..', '..', 'user', 'suno-library.json');
+
+function _readSunoLibrary() {
+  try { return JSON.parse(fs.readFileSync(_SUNO_LIB, 'utf8')) || []; }
+  catch { return []; }
+}
+
 export function localFallback({ recentPlays = [], hint = '' } = {}) {
-  const seeds = [
-    { query: '周杰倫 晴天', reason: 'fallback verified-playable' },
-    { query: '蔡依林 不該', reason: 'fallback verified-playable' },
-    { query: '周杰倫 告白氣球', reason: 'fallback verified-playable' },
-    { query: '鄵五人付貯明珠', reason: 'fallback verified-playable' },
-  ];
+  const lib = _readSunoLibrary();
   const seenIds = new Set(recentPlays.map(p => p.song_id));
-  const pick = seeds.filter(s => !seenIds.has(s.query)).slice(0, 2);
+  const pickFromSuno = (count) => {
+    if (!lib.length) return [];
+    const fresh = lib.filter(t => !seenIds.has('suno:' + t.id));
+    const pool = fresh.length ? fresh : lib;
+    const out = [];
+    const used = new Set();
+    while (out.length < count && used.size < pool.length) {
+      const i = Math.floor(Math.random() * pool.length);
+      if (used.has(i)) continue;
+      used.add(i);
+      const t = pool[i];
+      out.push({
+        query: t.title || t.tags || 'city pop',
+        reason: 'fallback (Suno library)',
+      });
+    }
+    return out;
+  };
+
+  const sunoSeeds = pickFromSuno(2);
+  if (sunoSeeds.length) {
+    return {
+      say: hint ? `${hint}，先放兩首墊著。` : '先放兩首墊著，等大腦回神。',
+      play: sunoSeeds,
+      reason: 'fallback plan (LLM unreachable, Suno library random)',
+      segue: '',
+    };
+  }
+
+  // Last resort — broad tags that should match almost any track via Suno
+  // tag scoring, plus a couple of NCM-friendly queries.
   return {
     say: hint ? `${hint}，先放兩首墊著。` : '先放兩首墊著，等大腦回神。',
-    play: pick.length ? pick : seeds.slice(0, 2),
-    reason: 'fallback plan (minimax unreachable)',
+    play: [
+      { query: 'city pop', reason: 'fallback verified-playable' },
+      { query: 'kayokyoku', reason: 'fallback verified-playable' },
+    ],
+    reason: 'fallback plan (LLM + Suno library unavailable)',
     segue: '',
   };
 }
