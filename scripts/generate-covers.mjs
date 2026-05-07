@@ -66,12 +66,21 @@ function seedFromId(id) {
   return Math.abs(h) % 1000000;
 }
 
-async function fetchCover(track) {
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+async function fetchCover(track, attempt = 1) {
   const url = pollinationsUrl(buildPrompt(track), seedFromId(track.id));
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
     const res = await fetch(url, { signal: ctrl.signal });
+    if (res.status === 429 || res.status === 502 || res.status === 503) {
+      if (attempt > 5) throw new Error(`HTTP ${res.status} after retries`);
+      const wait = Math.min(60000, 4000 * Math.pow(2, attempt - 1));
+      warn(`HTTP ${res.status}, backing off ${wait}ms (attempt ${attempt})`);
+      await sleep(wait);
+      clearTimeout(t);
+      return fetchCover(track, attempt + 1);
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const buf = Buffer.from(await res.arrayBuffer());
     if (buf.length < 1024) throw new Error(`tiny response ${buf.length}b`);
