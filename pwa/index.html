@@ -248,8 +248,8 @@
       top: 6%; right: 4%;
       width: 22%; aspect-ratio: 1.2/1;
       background: linear-gradient(180deg, #87CEEB 0%, #FFB78D 60%, #FF7A5A 100%);
-      border: 3px solid #4a3220;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.4) inset;
+      border: 3px solid #1a2230;
+      box-shadow: 3px 3px 0 #1a2230;
       z-index: 3;
       overflow: hidden;
     }
@@ -284,8 +284,8 @@
       font-family: 'Press Start 2P', 'Zpix', monospace;
       font-size: 9px; letter-spacing: 0.25em;
       padding: 5px 10px;
-      border-radius: 3px;
-      box-shadow: 0 0 0 2px rgba(255,255,255,0.25) inset, 0 2px 0 rgba(0,0,0,0.4);
+      border: 2px solid #1a2230;
+      box-shadow: 3px 3px 0 #1a2230;
       opacity: 0.4;
       transition: opacity 220ms;
       z-index: 5;
@@ -310,11 +310,12 @@
       top: 22%; right: 5%;
       width: 19%; aspect-ratio: 1;
       background: var(--paper);
-      border: 3px solid #4a3220;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.4) inset;
+      border: 3px solid #1a2230;
+      box-shadow: 3px 3px 0 #1a2230;
       z-index: 3;
       transform: rotate(2deg);
       overflow: hidden;
+      image-rendering: pixelated;
     }
     .booth-cover::after {
       content: '';
@@ -324,8 +325,11 @@
       background: #555;
       box-shadow: 0 1px 0 rgba(255,255,255,0.4);
     }
-    .booth-cover img {
-      width: 100%; height: 100%; object-fit: cover; display: block;
+    .booth-cover canvas {
+      width: 100%; height: 100%; display: block;
+      image-rendering: pixelated;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
     }
 
     /* —— A few pinned letters on the wall (top-left, under ON AIR) —— */
@@ -337,41 +341,45 @@
       z-index: 3;
     }
     .booth-pin-letters .pin {
-      background: #FFF5C8;
+      position: relative;
+      background: #FFF1A8;
       color: #1a2230;
       font-family: 'Zpix', 'DotGothic16', monospace;
-      font-size: 9px; line-height: 1.2;
-      padding: 4px 6px;
-      border: 1px solid rgba(0,0,0,0.18);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      font-size: 10px; line-height: 1.4;
+      letter-spacing: 0.02em;
+      padding: 7px 8px 5px;
+      border: 2px solid #1a2230;            /* hard pixel border */
+      box-shadow: 3px 3px 0 #1a2230;        /* offset hard shadow, no blur */
       transform: rotate(var(--rot, -2deg));
-      max-height: 36px; overflow: hidden;
-      position: relative;
+      max-height: 38px; overflow: hidden;
+      image-rendering: pixelated;
     }
+    /* Pixel pushpin (replace emoji): a 6×6 red square with a darker shadow */
     .booth-pin-letters .pin::before {
-      content: '📌';
-      position: absolute; top: -5px; left: 6px;
-      font-size: 10px;
+      content: '';
+      position: absolute; top: -5px; left: 8px;
+      width: 8px; height: 8px;
+      background: #D9381E;
+      border: 2px solid #1a2230;
+      box-shadow: 0 1px 0 #1a2230, 0 2px 0 rgba(0,0,0,0.4);
     }
-    .booth-pin-letters .pin.replied {
-      background: linear-gradient(transparent 60%, rgba(217,56,30,0.07) 60%);
-      background-color: #FFF5C8;
-    }
+    .booth-pin-letters .pin.replied { background: #B6E0A8; }
     .booth-pin-letters .pin.replied::after {
-      content: '✓';
-      position: absolute; top: -2px; right: -3px;
-      color: var(--accent-1);
+      content: 'OK';
+      position: absolute; top: -4px; right: -4px;
+      color: #fff;
+      background: #D9381E;
       font-family: 'Press Start 2P', 'Zpix', monospace;
-      font-size: 9px;
-      transform: rotate(8deg);
-      border: 1.5px solid var(--accent-1);
-      padding: 1px 3px;
-      background: rgba(255,255,255,0.85);
+      font-size: 7px; letter-spacing: 0.2em;
+      padding: 3px 4px 2px;
+      border: 2px solid #1a2230;
+      box-shadow: 2px 2px 0 #1a2230;
+      transform: rotate(6deg);
     }
     .booth-pin-letters .pin.highlight {
       transform: rotate(0deg) scale(1.08);
-      box-shadow: 0 0 0 2px var(--accent-2), 0 0 12px rgba(245,213,71,0.55);
-      background: #fff8d0;
+      background: #FFE85A;
+      box-shadow: 3px 3px 0 #1a2230, 0 0 0 3px #F5D547;
     }
 
     /* —— Claudio character SVG —— */
@@ -459,20 +467,20 @@
     /* —— Speech bubble that pops above Claudio when DJ is talking —— */
     .booth-bubble {
       position: absolute;
-      top: 12%; left: 50%; transform: translateX(-50%) translateY(-4px);
-      max-width: 70%;
+      top: 10%; left: 50%; transform: translateX(-50%) translateY(-4px);
+      max-width: 72%;
       background: var(--paper);
       color: var(--ink);
       font-family: 'Zpix', 'DotGothic16', monospace;
       font-size: 11px; line-height: 1.4;
       padding: 8px 12px;
-      border: 2px solid var(--ink);
-      border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      border: 3px solid var(--ink);
+      box-shadow: 4px 4px 0 var(--ink);
       z-index: 6;
       opacity: 0; pointer-events: none;
       transition: opacity 220ms;
       text-align: center;
+      image-rendering: pixelated;
     }
     .booth-bubble[data-show="1"] {
       opacity: 1;
@@ -901,7 +909,7 @@
           <div class="booth-onair"><span class="dot"></span>ON AIR</div>
           <div class="booth-bubble" id="booth-bubble" hidden>—</div>
           <div class="booth-window"></div>
-          <div class="booth-cover"><img id="vinyl-label" alt="" /></div>
+          <div class="booth-cover"><canvas id="cover-art" width="48" height="48"></canvas></div>
           <div class="booth-pin-letters" id="booth-pin-letters"></div>
 
           <div class="claudio-wrap">
