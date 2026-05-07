@@ -153,22 +153,61 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+// Track whether a refill is already in flight so we don't fire two LLM
+// calls in parallel (and so the loop doesn't block waiting for one).
+let _refilling = false;
+function maybeRefillAsync(hint = '') {
+  if (_refilling) return;
+  if (queue.length >= REFILL_AT) return;
+  _refilling = true;
+  refill(hint)
+    .catch(e => console.error('[dj] refill failed:', e?.message || e))
+    .finally(() => { _refilling = false; });
+}
+
+// Refill threshold — kick off async refill when 1 item or fewer remain so
+// the LLM call overlaps the currently playing track instead of blocking.
+const REFILL_AT = Math.max(LOW_WATER, 1);
+
 export async function djLoop() {
   console.log('[dj] loop started');
   while (true) {
     state.beat('dj');
-    if (queue.length < LOW_WATER) {
-      try { await refill(); }
-      catch (e) {
-        console.error('[dj] refill catastrophic:', e);
-        await sleep(5000);
+
+    // Always keep the queue topped up, but don't await it.
+    if (queue.length < REFILL_AT) maybeRefillAsync();
+
+    if (queue.length === 0) {
+      // Refill is in flight (or failed). Don't go silent — push a random
+      // Suno track instantly so the listener always hears music.
+      let pushed = false;
+      try {
+        const fallback = await ncm.findPlayable(''); // returns a random Suno song
+        if (fallback) {
+          queue.push({
+            kind: 'music',
+            songId: fallback.id,
+            title: fallback.name,
+            artist: (fallback.artists || ['Suno']).join(' / '),
+            src: fallback.src,
+            cover: fallback.cover || null,
+            duration: fallback.duration,
+            reason: 'instant fallback (queue empty)',
+            tags: fallback.tags || '',
+            playlistId: fallback.playlistId || null,
+          });
+          pushed = true;
+          console.log('[dj] instant fallback —', fallback.name);
+        }
+      } catch (e) {
+        console.warn('[dj] instant fallback failed:', e.message);
+      }
+      if (!pushed) {
+        await sleep(1500);
+        continue;
       }
     }
-    if (queue.length === 0) {
-      // total drain — tiny pause then loop
-      await sleep(2000);
-      continue;
-    }
+
     await play(queue.shift());
   }
 }
