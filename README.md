@@ -107,19 +107,22 @@
 - [x] 250ms 防 spam cooldown、最多 80 顆同時飄
 - [x] 用 normalised 0..1 座標，不同 viewport 大小都對齊
 
-### Claudio 像素角色（廣播室一角）
-中間那塊就是 Claudio 本人 — 一個 SVG 像素 DJ 坐在自己的廣播室裡。
+### Claudio 像素 DJ × 真錄音室
+中間那塊是 Claudio 本人坐在自己的錄音室裡 — 冷色暗牆 + 吸音棉 + 觀察窗 + 監聽喇叭 + 暖光打她身上的對比。
 
 | 元素 | 表現 | 行為 |
 |---|---|---|
-| 👧 **Claudio 角色** | SVG 像素半身像、黑髮 bob 頭、大眼睛+虹膜+睫毛+高光、粉腮紅、像素小微笑 | 永遠在眨眼（5.2s 週期）；DJ 講話時嘴一張一合（0.5s steps）；播音樂時頭上下微抖（0.7s）；mute 停止抖 |
-| 🎧 **耳機** | 黑色 over-ear + 紅 LED accent | 永遠戴著 |
-| 🔴 **ON AIR 招牌** | 紅底像素字（左上） | DJ 講話時亮起 + 閃爍；其他時候 40% 透明度 |
-| 🪟 **窗戶** | 小框 + 天空漸層（時段感應） | dawn / day / dusk / night 自動換配色，夜晚月亮、白天太陽 |
-| 🖼️ **AI cover 相框** | 牆上掛框、紅圈框 | 顯示當前播放的封面；DJ 段保留最後一張音樂封面 |
-| 📌 **聽眾便條紙** | 3 張黃色 sticky note 釘在牆上、隨機旋轉 | 已回覆蓋紅戳 `✓`；Claudio 正在念的那張放大 + 發黃光 |
-| 🎤 **桌前麥克風** | 小型 mesh head 麥（右下角，傾斜 -12°） | 純裝飾，不擋臉 |
-| 💬 **語言泡泡** | 紙質對話框（Claudio 頭頂） | DJ 講話時冒出，顯示她剛剛說的那段（限 80 字）|
+| 🟦 **錄音室牆面** | 深 navy/teal 漸層 + 鑽石吸音棉 pattern (CSS gradients) + 邊緣 vignette | 靜態，永遠在那 |
+| 💡 **暖光聚光** | 50% 78% 位置 radial 暖光 | 把 Claudio 的暖膚色從冷牆襯出來 |
+| 👧 **Claudio** | SVG 像素半身、黑 bob 頭、大眼睛+虹膜+睫毛+高光、粉腮紅、小微笑 | 5.2s 眨眼；DJ 講話時嘴一張一合 (0.5s steps)；音樂播放時頭上下微抖 (0.7s)；mute 停 |
+| 🎧 **耳機** | 黑色 over-ear + 紅 LED | 永遠戴著 |
+| 🎤 **麥克風 + Pop filter** | mesh head 麥 + 前面一片暗 mesh 圓盤 | DJ 講話時 ON AIR 招牌閃紅 |
+| 🔴 **ON AIR 招牌** | 紅底像素字（左上）| DJ 講話時亮起 + 閃爍 |
+| 🪟 **控制室觀察窗** | 暗 teal 玻璃 + 後面 mixing board 剪影（knob 排 + fader strips）+ 暖光漏出 + 三色 LED 表頭 | 靜態 |
+| 🔊 **監聽喇叭** ×2 | 黑箱體 + 圓 woofer + dust cap + 綠色待機 LED | 靜態，左右各一 |
+| 🖼️ **AI cover 相框** | 紅圈邊框（右側牆）| 顯示當前播放封面，DJ 段保留最後一張 |
+| 📌 **聽眾便條紙** | 3 張黃色 sticky note + 紅 OK 戳 | Claudio 正在唸的那張放大 + 發黃光 |
+| 💬 **語言泡泡** | 紙質對話框（Claudio 頭頂）+ 4 行截斷 | DJ 講話時冒出，顯示她剛剛說的那段 |
 
 實作：
 - `.booth` 元素，CSS class `.on-air` / `.dawn|.day|.dusk|.night` toggle
