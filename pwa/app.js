@@ -104,7 +104,28 @@ function setNow(item) {
       } catch (_) {}
     }
     if (item.src) {
+      // Compute live-offset so a fresh tune-in joins the song mid-play, like a
+      // real radio. startedAt + serverNow come from the server snapshot.
+      let seekSeconds = 0;
+      if (item.startedAt && item.serverNow) {
+        const drift = Date.now() - item.serverNow;             // local vs server clock
+        const elapsedMs = (Date.now() - item.startedAt) - drift;
+        const durMs = item.duration || 0;
+        // Only seek if track has clearly progressed and at least 2s remain.
+        if (elapsedMs > 1500 && (!durMs || elapsedMs < durMs - 2000)) {
+          seekSeconds = elapsedMs / 1000;
+        }
+      }
       audio.src = item.src;
+      const seekOnce = () => {
+        try {
+          if (seekSeconds > 0 && isFinite(audio.duration) && audio.duration > seekSeconds + 1) {
+            audio.currentTime = seekSeconds;
+          }
+        } catch (_) {}
+        audio.removeEventListener('loadedmetadata', seekOnce);
+      };
+      if (seekSeconds > 0) audio.addEventListener('loadedmetadata', seekOnce);
       tryPlay();
     }
   } else if (item.kind === 'dj') {

@@ -13,12 +13,13 @@ const TICK_MS = 1000;
 
 export const queue = [];
 let current = null;
+let startedAt = 0;
 let skipFlag = false;
 let paused = false;
 
 export function snapshot() {
   return {
-    current,
+    current: current ? { ...current, startedAt, serverNow: Date.now() } : null,
     queue: queue.slice(0, 10),
     paused,
   };
@@ -102,13 +103,14 @@ async function refill(hint = '') {
 
 async function play(item) {
   current = item;
+  startedAt = Date.now();
   if (item.kind === 'music') {
     state.recordPlay({
       songId: item.songId, title: item.title, artist: item.artist,
       src: item.src, duration: item.duration,
     });
   }
-  publish(events.NOW_PLAYING, item);
+  publish(events.NOW_PLAYING, { ...item, startedAt, serverNow: Date.now() });
 
   const dur = item.duration || 5000;
   const start = Date.now();
