@@ -77,38 +77,13 @@ const boothBubble = $('booth-bubble');
 
 const DEFAULT_LABEL = '/icon-512.png';
 
-// Remember the last music cover so the wall frame keeps showing it during
-// DJ segments (which don't have their own cover URL). The actual rendering
-// goes through a 48×48 canvas with imageSmoothingEnabled = false so the
-// painterly Pollinations art turns into chunky 8-bit blocks.
+// Cover frame was removed from the booth (it's baked into booth-bg-*.png
+// now). setCover is kept as a no-op + last-music-cover memory so the
+// Media Session metadata path keeps a live URL for the lock-screen.
 let _lastMusicCover = null;
 function setCover(url) {
   if (url) _lastMusicCover = url;
-  const target = url || _lastMusicCover || DEFAULT_LABEL;
-  drawPixelCover(target);
 }
-
-function drawPixelCover(src) {
-  if (!coverCtx || !coverCanvas) return;
-  const img = new Image();
-  // /covers/* and /icon-512 are same-origin so this is safe
-  img.crossOrigin = 'anonymous';
-  img.onload = () => {
-    const w = coverCanvas.width, h = coverCanvas.height;
-    coverCtx.imageSmoothingEnabled = false;
-    coverCtx.clearRect(0, 0, w, h);
-    coverCtx.drawImage(img, 0, 0, w, h);
-  };
-  img.onerror = () => {
-    // Fall back to a flat colour so the frame is never blank
-    coverCtx.fillStyle = '#FFE5C0';
-    coverCtx.fillRect(0, 0, coverCanvas.width, coverCanvas.height);
-  };
-  img.src = src;
-}
-
-// Initial paint so the frame isn't blank on first load
-drawPixelCover(DEFAULT_LABEL);
 
 // Mood = how Claudio is behaving right now. DJ talking → talking + tally light.
 // Music playing (and not muted) → bobs to beat. Otherwise just blinks idly.
