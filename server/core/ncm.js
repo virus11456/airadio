@@ -71,6 +71,7 @@ export async function lyric(id) {
 
 // --- Suno library (primary source) ---
 import fs from 'node:fs';
+import { state } from './state.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -110,33 +111,50 @@ function sunoToSong(c) {
     playlistId: c.playlist_id || null,
   };
 }
+// Pull the song_id of the last N plays so we can avoid replaying them
+// while the library is large enough to rotate.
+function _recentlyPlayedSet(n = 20) {
+  try {
+    const rows = state.recentPlays?.(n) || [];
+    return new Set(rows.map(r => r.song_id).filter(Boolean));
+  } catch { return new Set(); }
+}
+
 function matchSunoByQuery(keywords) {
   const lib = loadSuno();
   if (!lib.length) return null;
+
+  const recentIds = _recentlyPlayedSet(20);
+  // Filter out tracks that are still in the recent-played window. If that
+  // would empty the pool (small library), fall back to the full library.
+  const fresh = lib.filter(c => !recentIds.has('suno:' + c.id));
+  const pool = fresh.length > 0 ? fresh : lib;
+
   const q = String(keywords || '').toLowerCase().trim();
-  if (!q) return sunoToSong(lib[Math.floor(Math.random()*lib.length)]);
-  // Tokenise; score each clip on (title hits * 3) + tag hits.
+
+  // No specific query → pure random across the (recent-excluded) pool
+  if (!q) return sunoToSong(pool[Math.floor(Math.random() * pool.length)]);
+
+  // Tokenise; score each clip on (title hits × 3) + tag hits.
   const tokens = q.split(/[\s,，、；;]+/).filter(t => t.length >= 2);
-  let best = null, bestScore = 0;
   const ranked = [];
-  for (const c of lib) {
-    const text = ((c.title || '') + ' ' + (c.tags || '')).toLowerCase();
-    let s = 0;
+  for (const c of pool) {
+    let scoreVal = 0;
     for (const t of tokens) {
-      if ((c.title || '').toLowerCase().includes(t)) s += 3;
-      if ((c.tags  || '').toLowerCase().includes(t)) s += 1;
+      if ((c.title || '').toLowerCase().includes(t)) scoreVal += 3;
+      if ((c.tags  || '').toLowerCase().includes(t)) scoreVal += 1;
     }
-    if (s > 0) ranked.push([s, c]);
-    if (s > bestScore) { best = c; bestScore = s; }
+    if (scoreVal > 0) ranked.push([scoreVal, c]);
   }
   if (ranked.length) {
-    // pick random among top-3 to add variety
-    ranked.sort((a,b) => b[0]-a[0]);
-    const top = ranked.slice(0, 3);
-    return sunoToSong(top[Math.floor(Math.random()*top.length)][1]);
+    // Wider random pool — top 8 instead of top 3, so 80-track library
+    // actually rotates instead of clustering on the obvious matches.
+    ranked.sort((a, b) => b[0] - a[0]);
+    const top = ranked.slice(0, Math.min(8, ranked.length));
+    return sunoToSong(top[Math.floor(Math.random() * top.length)][1]);
   }
-  // No match: still serve a random Suno song so the radio never goes silent.
-  return sunoToSong(lib[Math.floor(Math.random()*lib.length)]);
+  // No tag match: random across the recent-excluded pool
+  return sunoToSong(pool[Math.floor(Math.random() * pool.length)]);
 }
 
 // "Best effort" pick: try Suno library first (primary source), fall back to NCM.
