@@ -1,6 +1,6 @@
-# AIRADIO.FM · 老 C 的房間
+# AIRADIO.FM
 
-> 老 C 主持的 24 小時不斷線、為你個人化排歌的 AI 電台。什麼曲風都播 — 中文流行、City Pop、80s 歌謠、Suno 自家生成。
+> 24 小時不斷線、為你個人化排歌的 AI 電台。什麼曲風都播 — 中文流行、City Pop、80s 歌謠、Suno 自家生成。
 > Powered by **MiniMax-M2** (大腦)、**Suno** (音樂)、**Edge TTS** (聲音)、**Pollinations.ai** (封面)、**Fastify + WebSocket** (後端)、**Hiroshi Nagai 風 8bit PWA** (前端)。
 
 ![status](https://img.shields.io/badge/status-LIVE-ff00ff)

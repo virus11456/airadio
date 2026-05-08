@@ -1,7 +1,7 @@
 {
-  "name": "AIRADIO.FM · 老 C 的房間",
+  "name": "AIRADIO.FM",
   "short_name": "AIRADIO",
-  "description": "7×24 AI 個人電台 · 老 C 在線",
+  "description": "7×24 AI 個人電台",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
