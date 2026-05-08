@@ -10,7 +10,7 @@
     { "query": "蔡依林 不該", "tags": ["safe"] }
   ],
   "genre_hints": {
-    "city-pop": "如果要 city pop 風格，優先挑跨年代的簫語シティポップ走向、中文州州風。避免山下達郎、竹內まりや、大貫妙子 (網易雲未授權、無法播放)",
+    "open-genre": "什麼都可以播。優先 Suno library，中文歌、City Pop、80s 歌謠、老歌都來者不拒",
     "avoid_locked": "在 NCM 上未授權的歌請勿推薦：竹內まりや、山下達郎、大貫妙子、那英、IU、YOASOBI、Adele、Coldplay、Linkin Park、aimer、張國榮、王菲、久石讓、Yiruma。"
   },
   "blocked": ["抖音神曲", "翻唱合輯"]

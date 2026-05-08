@@ -6,7 +6,7 @@
 
 - 晴 → 維持時段預設
 - 多雲 → 慢一點點
-- 雨 → 多放 jazz / bossa nova / city pop slow
+- 雨 → 多放 jazz / bossa nova / 中文慢歌 / city pop slow
 - 雷雨 → 避開激昂歌曲，鋼琴或 ambient
 - 颱風 → 放老歌、暖一點
 

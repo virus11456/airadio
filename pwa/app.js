@@ -168,7 +168,7 @@ function setNow(item) {
         navigator.mediaSession.metadata = new MediaMetadata({
           title: item.title || '',
           artist: item.artist || '',
-          album: 'AIRADIO.FM · シティポップ',
+          album: 'AIRADIO.FM · 老 C 的房間',
           artwork,
         });
         navigator.mediaSession.setActionHandler('play',  () => audio.play().catch(()=>{}));
