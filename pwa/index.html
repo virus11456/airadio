@@ -266,22 +266,6 @@
       94%, 97%      { opacity: 1; }
     }
 
-    /* —— Claudio mouth open (a darker oval covers the closed smile) —— */
-    .booth .mouth-open {
-      position: absolute;
-      top: 75.5%; left: 44.5%;
-      width: 6.5%; height: 3.2%;
-      background: #5A1A0A;
-      border-radius: 40%;
-      opacity: 0;
-      pointer-events: none;
-      z-index: 5;
-    }
-    .booth.talking .mouth-open {
-      animation: mouth-talk 0.46s steps(2) infinite;
-    }
-    @keyframes mouth-talk {
-      0%, 50%   { opacity: 0; }
       51%, 100% { opacity: 1; }
     }
 
@@ -908,7 +892,6 @@
           <div class="on-air-glow"></div>
           <div class="eye eye-l"></div>
           <div class="eye eye-r"></div>
-          <div class="mouth-open"></div>
           <div class="cat-eye cat-eye-l"></div>
           <div class="cat-eye cat-eye-r"></div>
           <div class="star s1"></div>
