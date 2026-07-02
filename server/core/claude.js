@@ -14,7 +14,8 @@ const BASE_URL   = (process.env.MINIMAX_BASE_URL || 'https://api.minimaxi.com').
 const MODEL      = process.env.MINIMAX_MODEL || 'MiniMax-M2';
 const TIMEOUT_MS = Number(process.env.MINIMAX_TIMEOUT_MS || 60_000);
 const TEMPERATURE= Number(process.env.MINIMAX_TEMPERATURE || 0.7);
-const MAX_TOKENS = Number(process.env.MINIMAX_MAX_TOKENS || 2048);
+// M3 reasoning eats a lot; leave room for <think> + JSON without truncation.
+const MAX_TOKENS = Number(process.env.MINIMAX_MAX_TOKENS || 4096);
 const INNER_FIELDS = ['result', 'content', 'text', 'output', 'response'];
 
 function stripFence(s) {
@@ -23,15 +24,26 @@ function stripFence(s) {
   return m ? m[1] : s;
 }
 
+// MiniMax M2/M3 wrap reasoning in <think>...</think> even when response_format
+// is json_object; strip those blocks so the remaining JSON parses cleanly.
+function stripThink(s) {
+  if (typeof s !== 'string') return s;
+  return s.replace(/<think>[\s\S]*?<\/think>/gi, '')   // closed blocks
+          .replace(/<think>[\s\S]*$/i, '')             // unclosed (truncated)
+          .replace(/^[\s\S]*?<\/think>/i, '')          // trailing close only
+          .trim();
+}
+
 function tryParseInner(content) {
   if (typeof content !== 'string') return null;
+  const cleaned = stripThink(content);
   // Try direct JSON parse after fence strip
-  try { return JSON.parse(stripFence(content)); } catch (_) {}
+  try { return JSON.parse(stripFence(cleaned)); } catch (_) {}
   // Fallback: extract first {...} balanced block
-  const start = content.indexOf('{');
-  const end   = content.lastIndexOf('}');
+  const start = cleaned.indexOf('{');
+  const end   = cleaned.lastIndexOf('}');
   if (start >= 0 && end > start) {
-    try { return JSON.parse(content.slice(start, end + 1)); } catch (_) {}
+    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch (_) {}
   }
   return null;
 }
@@ -99,13 +111,21 @@ export async function callClaude({ system, user, model, signal } = {}) {
   const choice = json.choices && json.choices[0];
   const message = choice && choice.message;
   let content = message && message.content;
-  // M2 reasoning model: when answer truncated by max_tokens, content may be
-  // empty and the JSON ends up in reasoning_content instead.
-  if ((!content || typeof content !== 'string' || !content.trim()) && message && message.reasoning_content) {
-    content = message.reasoning_content;
+  // M2/M3 reasoning models: try both content and reasoning_content. Sometimes
+  // content is empty (truncated), sometimes it has <think>...</think> prefix,
+  // sometimes the JSON is only in reasoning_content. Try both and pick first
+  // that yields a parseable inner object.
+  const candidates = [];
+  if (typeof content === 'string' && content.trim()) candidates.push(content);
+  if (message && typeof message.reasoning_content === 'string' && message.reasoning_content.trim()) {
+    candidates.push(message.reasoning_content);
   }
-  if (!content || typeof content !== 'string') {
-    // Try INNER_FIELDS at top level just in case
+  for (const c of candidates) {
+    const inner = tryParseInner(c);
+    if (inner) return inner;
+  }
+  if (!candidates.length) {
+    // Try INNER_FIELDS at top level just in case (odd non-OpenAI shapes)
     for (const k of INNER_FIELDS) {
       if (typeof json[k] === 'string') {
         const inner = tryParseInner(json[k]);
@@ -114,11 +134,9 @@ export async function callClaude({ system, user, model, signal } = {}) {
     }
     throw new Error(`minimax: no content in response keys=${Object.keys(json).join(',')}`);
   }
-
-  const inner = tryParseInner(content);
-  if (!inner) {
-    throw new Error(`minimax: cannot parse inner JSON; head=${content.slice(0, 200)}`);
-  }
+  // All candidates failed to yield parseable inner JSON.
+  const head = candidates[0].slice(0, 240);
+  throw new Error(`minimax: cannot parse inner JSON; head=${head}`);
   return inner;
 }
 
