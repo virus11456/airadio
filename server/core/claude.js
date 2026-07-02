@@ -50,6 +50,10 @@ export async function callClaude({ system, user, model, signal } = {}) {
     temperature: TEMPERATURE,
     max_tokens: MAX_TOKENS,
     stream: false,
+    // Force JSON output. MiniMax M2/M3 are reasoning models that otherwise
+    // narrate their thinking ("Let me analyze the current situation:") before
+    // the answer, which breaks tryParseInner. json_object mode strips that.
+    response_format: { type: 'json_object' },
   };
 
   const ctrl = new AbortController();
@@ -58,7 +62,10 @@ export async function callClaude({ system, user, model, signal } = {}) {
 
   let res;
   try {
-    res = await fetch(`${BASE_URL}/v1/text/chatcompletion_v2`, {
+    // OpenAI-compatible endpoint. The native `/v1/text/chatcompletion_v2`
+    // path requires a MiniMax JWT and is not exposed by proxy keys (sk-cp-*).
+    // Body is already OpenAI-shaped, so only the URL needs changing.
+    res = await fetch(`${BASE_URL}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
