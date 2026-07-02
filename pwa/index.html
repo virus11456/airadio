@@ -114,60 +114,33 @@
     }
 
     main {
-      flex: 1; padding: 28px 24px 100px;
+      flex: 1; padding: 28px 24px 40px;
       max-width: 720px; margin: 0 auto; width: 100%;
     }
     .view { display: none; }
     .view.active { display: block; }
 
-    /* ============ CLOCK (LCD watch style) ============ */
-    .clockbox {
-      max-width: 480px; margin: 0 auto 24px;
-      padding: 20px 24px;
-      background: linear-gradient(180deg, #C4E0B5 0%, #A8D094 100%);
-      border-radius: 16px;
-      box-shadow:
-        0 1px 0 rgba(255,255,255,0.6) inset,
-        0 -8px 16px rgba(0,0,0,0.06) inset,
-        0 6px 18px var(--shadow);
-      text-align: center;
-      position: relative;
-      border: 1px solid rgba(26,46,58,0.1);
-    }
-    .clockbox::before {
-      content: 'CLOCK · SYS';
-      position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
-      background: var(--paper); color: var(--ink);
-      font-family: 'Press Start 2P', 'Zpix', monospace; font-weight: 400;
-      font-size: 9px; letter-spacing: 0.4em;
-      padding: 2px 12px;
-      border-radius: 999px;
-      box-shadow: 0 2px 6px var(--shadow);
-    }
-    .clockbox .time {
+    /* ============ CLOCK (compact one-line strip) ============ */
+    .clockstrip {
+      display: flex; justify-content: center; align-items: center;
+      gap: 10px; flex-wrap: wrap;
+      margin: 0 auto 12px;
       font-family: 'Press Start 2P', 'Zpix', monospace;
-      font-weight: 200; font-size: 38px; line-height: 1;
-      color: var(--ink); letter-spacing: 0.04em;
+      font-size: 10px; letter-spacing: 0.14em;
+      color: var(--ink); opacity: 0.9;
+      text-transform: uppercase;
+    }
+    .clockstrip .time {
+      font-size: 16px; line-height: 1;
       font-variant-numeric: tabular-nums;
     }
-    .clockbox .colon { animation: tick 1s steps(2) infinite; }
+    .clockstrip .colon { animation: tick 1s steps(2) infinite; }
     @keyframes tick { 0%,50%{opacity:1;} 51%,100%{opacity:0.3;} }
-    .clockbox .meta {
-      margin-top: 10px;
-      display: flex; justify-content: center; gap: 12px;
-      flex-wrap: wrap;
-      font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
-      color: var(--ink); opacity: 0.75;
-    }
-    .clockbox .meta span { padding: 2px 0; }
-    .clockbox .meta .city {
+    .clockstrip .dot { opacity: 0.35; }
+    .clockstrip .city {
       background: var(--ink); color: var(--sand);
-      padding: 2px 10px; border-radius: 999px;
-      letter-spacing: 0.25em;
-    }
-    @media (max-width: 480px) {
-      .clockbox .time { font-size: 38px; }
-      .clockbox .meta { font-size: 9px; gap: 8px; }
+      padding: 3px 10px; border-radius: 999px;
+      font-size: 8px; letter-spacing: 0.25em;
     }
 
     /* ============ AI COVER IMAGE OVERLAY ============ */
@@ -192,7 +165,7 @@
     .feedback {
       display: flex; gap: 14px;
       justify-content: center; align-items: center;
-      margin: 8px 0 18px;
+      margin: 6px 0 12px;
     }
     .feedback button {
       appearance: none; cursor: pointer;
@@ -458,10 +431,15 @@
     }
     .mail-list .empty { opacity: 0.55; font-size: 11px; text-align: center; padding: 6px 0; }
 
-    /* ============ COVER ART (canvas) ============ */
+    /* ============ COVER ART (canvas) ============
+       Slightly smaller than before: the booth is a window into 老 C 的房間,
+       not a full-bleed poster — smaller frame reads more like "a room you
+       glance at" and frees vertical space for the interaction area below.
+       Overlays (eyes / stars / glows) use % coords of this box, so scaling
+       the container keeps them aligned. */
     .cover {
       width: 100%; aspect-ratio: 1;
-      max-width: 420px; margin: 0 auto 16px;
+      max-width: 340px; margin: 0 auto 12px;
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 10px 30px var(--shadow), 0 1px 0 rgba(255,255,255,0.7) inset;
@@ -474,7 +452,7 @@
     }
 
     /* ============ NOW PLAYING (album-cover typography) ============ */
-    .now { text-align: center; margin-bottom: 24px; }
+    .now { text-align: center; margin-bottom: 10px; }
     .now .title {
       font-family: 'Zpix', 'DotGothic16', monospace;
       font-weight: 700; font-size: 14px;
@@ -498,7 +476,7 @@
       border: 1px solid rgba(26,46,58,0.15);
       border-radius: 12px;
       padding: 26px 22px 18px 22px;
-      margin: 22px 0;
+      margin: 14px 0;
       font-family: 'Zpix', 'DotGothic16', monospace;
       font-weight: 400; font-size: 15px; line-height: 1.7;
       color: var(--ink);
@@ -689,9 +667,10 @@
     }
     .status::before { content: '● '; color: var(--accent-1); }
 
-    /* ============ FOOTER (magazine colophon) ============ */
+    /* ============ FOOTER (magazine colophon, in-flow at page end) ============
+       Was position:fixed with opacity — it floated over the LIKE/NOPE buttons
+       and blocked taps. In-flow at the bottom never covers content. */
     footer.ticker {
-      position: fixed; bottom: 0; left: 0; right: 0;
       background: var(--paper);
       border-top: 1px solid rgba(26,46,58,0.2);
       font-family: 'Outfit', 'Zpix', 'DotGothic16', 'Press Start 2P', monospace;
@@ -700,7 +679,6 @@
       padding: 10px 20px;
       color: var(--ink); opacity: 0.85;
       display: flex; justify-content: space-between; gap: 18px;
-      z-index: 50;
     }
     footer.ticker .left  { color: var(--accent-1); font-weight: 600; }
     footer.ticker .right { color: var(--accent-1); font-weight: 600; }
@@ -755,15 +733,14 @@
       nav { padding: 10px 16px; gap: 22px; }
       nav button { font-size: 11px; letter-spacing: 0.16em; }
 
-      main { padding: 18px 12px 90px; }
+      main { padding: 18px 12px 32px; }
 
-      .clockbox { padding: 14px 18px; max-width: 360px; margin-bottom: 16px; }
-      .clockbox::before { font-size: 8px; padding: 2px 10px; }
-      .clockbox .time { font-size: 28px; }
-      .clockbox .meta { font-size: 9px; gap: 8px; flex-wrap: wrap; }
-      .clockbox .city { font-size: 8px; }
+      .clockstrip { font-size: 9px; gap: 8px; margin-bottom: 10px; }
+      .clockstrip .time { font-size: 14px; }
 
-      .cover { max-width: 100%; }
+      /* Not full-bleed on phones: leaves breathing room and pulls the
+         now-playing + DJ.MSG + mail interaction area up into the first screen. */
+      .cover { max-width: 78%; }
 
       .now .title { font-size: 13px; }
       .now .artist { font-size: 11px; letter-spacing: 0.18em; }
@@ -803,8 +780,8 @@
     }
 
     @media (max-width: 380px) {
-      .clockbox .time { font-size: 24px; }
-      .clockbox .meta { font-size: 8px; gap: 6px; }
+      .clockstrip { font-size: 8px; }
+      .clockstrip .time { font-size: 13px; }
       .chat input { font-size: 11px; padding: 8px 12px; }
       .chat input::placeholder { font-size: 10px; }
       .chat button { font-size: 8px; padding: 0 10px; letter-spacing: 0.1em; }      .dj-line { font-size: 11px; padding: 14px 12px 10px; }
@@ -856,8 +833,7 @@
     /* iOS safe-area for notch / home indicator */
     @supports (padding: max(0px)) {
       header.bar { padding-top: max(16px, env(safe-area-inset-top)); }
-      main       { padding-bottom: max(90px, calc(env(safe-area-inset-bottom) + 70px)); }
-      footer.ticker { padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+      footer.ticker { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
     }
   </style>
 </head>
@@ -875,13 +851,12 @@
 
   <main>
     <section class="view active" id="view-player">
-      <div class="clockbox">
-        <div class="time" id="clock-time">--<span class="colon">:</span>--</div>
-        <div class="meta">
-          <span class="date" id="clock-date">--- --- ---</span>
-          <span class="tz" id="clock-tz">UTC</span>
-          <span class="city" id="clock-city">UNKNOWN</span>
-        </div>
+      <div class="clockstrip">
+        <span class="time" id="clock-time">--<span class="colon">:</span>--</span>
+        <span class="dot">·</span>
+        <span class="date" id="clock-date">--- -- ---</span>
+        <span class="dot">·</span>
+        <span class="city" id="clock-city">—</span>
       </div>
 
       <div class="cover" id="cover">
@@ -931,9 +906,6 @@
         </button>
       </div>
       <div class="dj-line" id="dj-line"></div>
-      <div class="controls">
-        <button id="btn-toggle">♪ Live</button>
-      </div>
       <div class="chat">
         <input id="chat-input" placeholder="寄信給老 C，他可能在歌間回你" maxlength="200" />
         <input id="chat-input-hidden" type="hidden" />
@@ -943,6 +915,9 @@
         <h4>📮 LISTENER MAIL</h4>
         <div id="mail-list-body"><div class="empty">還沒有來信。第一封就由你寫。</div></div>
       </section>
+      <div class="controls">
+        <button id="btn-toggle">♪ Live</button>
+      </div>
       <div class="queue">
         <h3>Up Next</h3>
         <div id="queue-list"></div>
@@ -984,9 +959,7 @@
       var city = (tz.split('/').pop() || 'UNKNOWN').replace(/_/g,' ').toUpperCase();
       var $t=document.getElementById('clock-time');
       var $d=document.getElementById('clock-date');
-      var $z=document.getElementById('clock-tz');
       var $c=document.getElementById('clock-city');
-      if($z) $z.textContent = tz.toUpperCase();
       if($c) $c.textContent = city;
       var W=['SUN','MON','TUE','WED','THU','FRI','SAT'];
       var M=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
