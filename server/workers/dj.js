@@ -29,6 +29,54 @@ export function skip() { skipFlag = true; }
 export function pause() { paused = true; }
 export function resume() { paused = false; }
 
+// ---------- Station-ID jingles (台呼) ----------
+// Every N music tracks the station identifies itself — the single biggest
+// "this is a real radio" cue. Fixed lines, no LLM involved; Edge/Fish TTS
+// caches by md5 so each line is synthesized exactly once, ever.
+const JINGLE_EVERY = Number(process.env.JINGLE_EVERY_SONGS || 4);
+const JINGLES_DAY = [
+  '你正在收聽的是 AIRADIO FM，二十四小時不打烊的 AI 電台。',
+  'AIRADIO FM——城市的頻率，永遠在線。',
+  'AIRADIO FM，polyboy 點 tech，隨時歡迎回來。',
+];
+const JINGLES_NIGHT = [
+  '深夜的 AIRADIO FM，還醒著的人，我們一起聽下去。',
+  '你正在收聽的是 AIRADIO FM，陪你到天亮。',
+];
+let musicSinceJingle = 0;
+let jingleIdx = 0;
+
+async function makeJingleItem() {
+  const h = new Date(new Date().toLocaleString('en-US', { timeZone: process.env.TZ || 'Asia/Taipei' })).getHours();
+  const pool = (h >= 23 || h < 6) ? JINGLES_NIGHT : JINGLES_DAY;
+  const say = pool[jingleIdx++ % pool.length];
+  let src = null;
+  try { src = await synthesize(say); }
+  catch (e) { console.warn('[dj] jingle tts failed:', e.message); }
+  return {
+    kind: 'dj', say, src,
+    duration: estimateDurationMs(say),
+    reason: 'station-id',
+  };
+}
+
+// ---------- Scheduled announcements (整點報時 etc.) ----------
+// Pushed to the FRONT of the queue so it plays right after the current
+// track — never interrupts mid-song. Not recorded as a dj message so the
+// LLM's dedup / context stays clean.
+export async function queueAnnouncement(say, reason = 'announcement') {
+  if (!say || !say.trim()) return;
+  let src = null;
+  try { src = await synthesize(say); }
+  catch (e) { console.warn('[dj] announcement tts failed:', e.message); }
+  queue.unshift({
+    kind: 'dj', say, src,
+    duration: estimateDurationMs(say),
+    reason,
+  });
+  publish(events.QUEUE_UPDATE, { queue: snapshot().queue });
+}
+
 async function refill(hint = '') {
   let plan;
   let pendingFanIds = [];
@@ -208,6 +256,23 @@ export async function djLoop() {
       }
     }
 
-    await play(queue.shift());
+    const item = queue.shift();
+    await play(item);
+
+    // Station-ID cadence: after every JINGLE_EVERY music tracks, slot a
+    // jingle in as the very next item. Skips DJ/announcement items so the
+    // count reflects actual songs.
+    if (item.kind === 'music') {
+      musicSinceJingle++;
+      if (musicSinceJingle >= JINGLE_EVERY) {
+        musicSinceJingle = 0;
+        try {
+          queue.unshift(await makeJingleItem());
+          publish(events.QUEUE_UPDATE, { queue: snapshot().queue });
+        } catch (e) {
+          console.warn('[dj] jingle failed:', e.message);
+        }
+      }
+    }
   }
 }
