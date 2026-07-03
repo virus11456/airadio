@@ -21,8 +21,11 @@ const COVER_DIR = path.join(ROOT, 'cache', 'covers');
 const SIZE = 768;
 const MODEL = process.env.COVER_MODEL || 'flux';
 const TIMEOUT_MS = Number(process.env.COVER_TIMEOUT_MS || 120000);
+// 8bit pixel style: matches the site's wordmark / buttons / default cover
+// so every screen element lives in the same pixel universe. Palette pinned
+// to the Nagai sunset colors used across the UI.
 const STYLE = process.env.COVER_STYLE
-  || '1980s 1990s Japanese city pop album cover, Hiroshi Nagai inspired illustration, soft sunset palette, retro vaporwave, vintage anime palm trees, clean vector style, no text, no watermark';
+  || '8bit pixel art album cover, retro video game aesthetic, chunky visible square pixels, limited color palette of sky blue peach coral sunset yellow and deep sea navy, Japanese city pop 1980s summer mood, flat colors, navy ink outlines, no text, no letters, no watermark';
 
 const argv = process.argv.slice(2);
 const FORCE = argv.includes('--force');
