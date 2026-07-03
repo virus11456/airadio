@@ -133,12 +133,46 @@ function refreshScreenTime() {
 refreshScreenTime();
 setInterval(refreshScreenTime, 5 * 60 * 1000);
 
+// ---------- OSD ticker + progress (on-screen life) ----------
+const tickerEl = $('ticker-text');
+const progressFill = $('progress-fill');
+let _queueCache = [];
+
+function updateTicker() {
+  if (!tickerEl) return;
+  const parts = [];
+  if (currentItem && currentItem.kind === 'music' && currentItem.title) {
+    parts.push('♪ NOW PLAYING: ' + currentItem.title + (currentItem.artist ? ' — ' + currentItem.artist : ''));
+  }
+  const nexts = _queueCache.filter(q => q.kind === 'music' && q.title).slice(0, 2).map(q => q.title);
+  if (nexts.length) parts.push('NEXT ▸ ' + nexts.join(' / '));
+  parts.push('📮 寄信給老C 他會在歌間回你');
+  parts.push('TAP TO REACT ♥');
+  tickerEl.textContent = parts.join('   ◆   ');
+}
+
+// Song progress → segmented bar at the screen's bottom edge. Prefers the
+// real <audio> position; falls back to server startedAt for fresh tune-ins.
+setInterval(() => {
+  if (!progressFill) return;
+  let pct = 0;
+  if (currentItem && currentItem.kind === 'music') {
+    if (isFinite(audio.duration) && audio.duration > 0 && audio.currentTime > 0) {
+      pct = (audio.currentTime / audio.duration) * 100;
+    } else if (currentItem.startedAt && currentItem.duration) {
+      pct = ((Date.now() - currentItem.startedAt) / currentItem.duration) * 100;
+    }
+  }
+  progressFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+}, 1000);
+
 // ---------- Now playing ----------
 function setNow(item) {
   currentItem = item;
   if (!item) return;
 
   setStage(item);
+  updateTicker();
 
   if (item.kind === 'music') {
     $('now-title').textContent = item.title || '—';
@@ -205,6 +239,8 @@ function setNow(item) {
 }
 
 function setQueue(queue) {
+  _queueCache = queue || [];
+  updateTicker();
   const list = $('queue-list');
   list.innerHTML = '';
   for (const q of queue) {
