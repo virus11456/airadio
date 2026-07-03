@@ -7,6 +7,10 @@
   <link rel="manifest" href="/manifest.json" />
 
   <!-- iOS PWA -->
+  <!-- iOS ignores manifest icons; without this link the home-screen tile is a
+       blank theme-color square. -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -143,204 +147,238 @@
       font-size: 8px; letter-spacing: 0.25em;
     }
 
-    /* ============ AI COVER IMAGE OVERLAY ============ */
+    /* ============ GAME BOY COLOR SHELL ============
+       The whole centerpiece is a handheld console. The screen shows the
+       radio (AI cover / equalizer / DJ dialogue box); A·B are LIKE·NOPE,
+       START toggles live audio, SELECT jumps to the mailbox, D-pad = volume. */
+    .gbc {
+      max-width: 340px;
+      margin: 0 auto 16px;
+      background: linear-gradient(160deg, #7BBBDD 0%, var(--accent-3) 55%, #558FB8 100%);
+      border: 3px solid var(--ink);
+      border-radius: 14px 14px 56px 14px;   /* signature GBC bottom-right curve */
+      box-shadow: 6px 6px 0 rgba(26,46,58,0.32), 0 1px 0 rgba(255,255,255,0.55) inset;
+      padding: 10px 14px 20px;
+      position: relative;
+    }
+    .gbc-top {
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: 'Press Start 2P', 'Zpix', monospace;
+      font-size: 7px; letter-spacing: 0.22em; color: var(--ink);
+      opacity: 0.8; margin: 2px 2px 8px;
+    }
+
+    /* —— dark bezel around the screen —— */
+    .bezel {
+      background: linear-gradient(180deg, #22303E 0%, var(--ink) 100%);
+      border-radius: 10px 10px 36px 10px;
+      padding: 22px 14px 8px;
+      position: relative;
+      box-shadow: 0 2px 0 rgba(255,255,255,0.25), 0 -2px 6px rgba(0,0,0,0.35) inset;
+    }
+    .bezel .led-row {
+      position: absolute; left: 12px; top: 7px;
+      display: flex; align-items: center; gap: 5px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px; letter-spacing: 0.18em;
+      color: rgba(255,245,225,0.55);
+    }
+    .bezel .led {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #3A2020; box-shadow: 0 0 0 1px rgba(0,0,0,0.4) inset;
+    }
+    .gbc.playing .led { background: #FF3B2F; box-shadow: 0 0 5px rgba(255,59,47,0.9); }
+    .gbc.on-air  .led { background: #FF3B2F; animation: led-pulse 1.1s ease-in-out infinite; }
+    @keyframes led-pulse { 0%,100%{opacity:1; box-shadow:0 0 7px #FF3B2F;} 50%{opacity:0.25; box-shadow:none;} }
+    .bezel-label {
+      margin-top: 7px; text-align: center;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px; letter-spacing: 0.3em;
+      color: rgba(255,245,225,0.6);
+    }
+    /* COLOR wordmark — each letter its own hue, like the original logo */
+    .bezel-label b { font-weight: 400; }
+    .bezel-label .c1 { color: #E6533C; }
+    .bezel-label .c2 { color: #F5D547; }
+    .bezel-label .c3 { color: #3FBF7F; }
+    .bezel-label .c4 { color: #4A9FBE; }
+    .bezel-label .c5 { color: #B06AB3; }
+
+    /* —— controls row: D-pad + A/B —— */
+    .gbc-controls {
+      display: flex; justify-content: space-between; align-items: center;
+      margin: 18px 6px 0; min-height: 84px;
+    }
+    .dpad { position: relative; width: 76px; height: 76px; flex: 0 0 auto; }
+    .dpad .h, .dpad .v {
+      position: absolute; background: var(--ink); border-radius: 5px;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.15) inset;
+    }
+    .dpad .h { left: 0; right: 0; top: 27px; height: 22px; }
+    .dpad .v { top: 0; bottom: 0; left: 27px; width: 22px; }
+    .dpad::after { /* center dimple */
+      content: ''; position: absolute; left: 32px; top: 32px;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #3A4B5C, #10171E);
+    }
+    .dpad button {
+      position: absolute; width: 26px; height: 26px;
+      appearance: none; background: transparent; border: 0;
+      cursor: pointer; z-index: 2;
+    }
+    .dpad .dp-left  { left: 0;  top: 25px; }
+    .dpad .dp-right { right: 0; top: 25px; }
+    .dpad button:active { background: rgba(255,255,255,0.12); border-radius: 4px; }
+
+    .ab { display: flex; gap: 16px; align-items: center; transform: rotate(-16deg); padding-right: 4px; }
+    .ab button {
+      appearance: none; cursor: pointer;
+      width: 54px; height: 54px; border-radius: 50%;
+      border: 3px solid var(--ink);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 15px; color: #fff;
+      box-shadow: 0 4px 0 rgba(26,46,58,0.55), 0 2px 0 rgba(255,255,255,0.25) inset;
+      position: relative;
+      transition: filter 150ms;
+    }
+    .ab button:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(26,46,58,0.55); }
+    .ab .b { background: radial-gradient(circle at 35% 30%, #6FB3D9, var(--sea-mid)); }
+    .ab .a { background: radial-gradient(circle at 35% 30%, #E96A50, var(--accent-1)); margin-top: -18px; }
+    .ab button .tag {
+      position: absolute; left: 50%; bottom: -17px; transform: translateX(-50%);
+      font-size: 6px; letter-spacing: 0.2em; color: var(--ink); white-space: nowrap;
+    }
+    .ab button .count {
+      position: absolute; top: -7px; right: -9px;
+      background: var(--paper); color: var(--ink);
+      border: 2px solid var(--ink); border-radius: 999px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px; line-height: 1; padding: 2px 5px;
+    }
+    .ab button.is-active { outline: 3px solid var(--accent-2); filter: brightness(1.12); }
+    .ab.inactive { opacity: 0.55; pointer-events: none; }
+    .pulse { animation: fbpulse 360ms ease; }
+    @keyframes fbpulse { 0%{transform:scale(1);} 50%{transform:scale(1.18);} 100%{transform:scale(1);} }
+
+    /* —— SELECT / START pills —— */
+    .gbc-ss {
+      display: flex; justify-content: center; gap: 20px;
+      margin-top: 20px; padding-right: 64px;
+    }
+    .gbc-ss button {
+      appearance: none; cursor: pointer;
+      transform: rotate(-16deg);
+      background: linear-gradient(180deg, #33465A, var(--ink));
+      color: var(--sand);
+      border: 2px solid var(--ink); border-radius: 999px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px; letter-spacing: 0.16em;
+      padding: 7px 14px;
+      box-shadow: 0 3px 0 rgba(26,46,58,0.5);
+    }
+    .gbc-ss button:active { transform: rotate(-16deg) translateY(2px); box-shadow: 0 1px 0 rgba(26,46,58,0.5); }
+
+    /* —— speaker slots, bottom-right —— */
+    .gbc-speaker {
+      position: absolute; right: 20px; bottom: 18px;
+      display: flex; gap: 6px; transform: rotate(-16deg);
+      pointer-events: none;
+    }
+    .gbc-speaker i {
+      width: 5px; height: 28px; border-radius: 3px;
+      background: rgba(26,46,58,0.55);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.3);
+    }
+
+    /* ============ SCREEN CONTENT (inside the GBC bezel) ============ */
+    /* Fallback backdrop: Nagai-palette sky, swaps with local time. */
+    .cover[data-time="night"] {
+      background: linear-gradient(180deg, #0D1B2E 0%, #1E3A5F 55%, #E6533C 88%, #F5D547 100%);
+    }
+    .cover[data-time="day"] {
+      background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-low) 85%, var(--sea-mid) 100%);
+    }
+
+    /* —— chunky 8bit equalizer, steps() for that quantized GB motion —— */
+    .cover .eq {
+      position: absolute; left: 6%; right: 6%; bottom: 0; height: 52%;
+      display: flex; align-items: flex-end; gap: 5%;
+      z-index: 2; pointer-events: none;
+    }
+    .cover .eq i {
+      flex: 1 1 0;
+      background: var(--paper);
+      box-shadow: 0 0 0 2px rgba(26,46,58,0.35) inset;
+      height: 12%;
+      animation: eq-b 1.2s steps(5) infinite;
+      transform-origin: bottom;
+    }
+    .cover .eq i:nth-child(1) { animation-duration: 0.9s;  background: #E6533C; }
+    .cover .eq i:nth-child(2) { animation-duration: 1.3s;  background: #F5D547; animation-delay: -0.4s; }
+    .cover .eq i:nth-child(3) { animation-duration: 1.05s; background: #FFF5E1; animation-delay: -0.8s; }
+    .cover .eq i:nth-child(4) { animation-duration: 1.5s;  background: #4A9FBE; animation-delay: -0.2s; }
+    .cover .eq i:nth-child(5) { animation-duration: 0.85s; background: #E6533C; animation-delay: -0.6s; }
+    .cover .eq i:nth-child(6) { animation-duration: 1.25s; background: #F5D547; animation-delay: -1.0s; }
+    .cover .eq i:nth-child(7) { animation-duration: 1.0s;  background: #FFF5E1; animation-delay: -0.3s; }
+    .cover .eq i:nth-child(8) { animation-duration: 1.4s;  background: #4A9FBE; animation-delay: -0.7s; }
+    @keyframes eq-b {
+      0%, 100% { height: 12%; }
+      25%      { height: 62%; }
+      50%      { height: 30%; }
+      75%      { height: 86%; }
+    }
+    /* Freeze the bars when nothing is audibly playing */
+    .cover:not(.playing) .eq i { animation-play-state: paused; height: 10%; opacity: 0.55; }
+
+    /* —— per-track AI cover art: fades in over the sky, bars peek below —— */
     .cover .ai-cover {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
       object-fit: cover;
-      opacity: 0;
-      transition: opacity 600ms ease;
-      z-index: 2;
-      pointer-events: none;
-    }
-    .cover.has-ai-cover .ai-cover { opacity: 1; }
-    /* When an AI cover is shown, dim the canvas a bit so the cover shines and
-       the equalizer bars still peek through the bottom edge. */
-    .cover .ai-cover.fade-bars {
-      mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
-      -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
-    }
-
-    /* ============ FEEDBACK BUTTONS (like / dislike) ============ */
-    .feedback {
-      display: flex; gap: 14px;
-      justify-content: center; align-items: center;
-      margin: 6px 0 12px;
-    }
-    .feedback button {
-      appearance: none; cursor: pointer;
-      background: var(--paper);
-      color: var(--ink);
-      border: 2px solid rgba(26,46,58,0.35);
-      border-radius: 8px;
-      padding: 10px 18px;
-      font-family: 'Press Start 2P', 'Zpix', 'DotGothic16', monospace;
-      font-size: 11px; letter-spacing: 0.18em;
-      box-shadow: 0 3px 0 rgba(26,46,58,0.5);
-      transition: transform 80ms, background 200ms, color 200ms, box-shadow 80ms;
-      display: inline-flex; align-items: center; gap: 8px;
-      min-width: 96px; justify-content: center;
-    }
-    .feedback button:hover { transform: translateY(-1px); }
-    .feedback button:active { transform: translate(2px, 2px); box-shadow: 0 1px 0 rgba(26,46,58,0.5); }
-    .feedback button .count { font-size: 9px; opacity: 0.7; }
-    .feedback button.is-active.like {
-      background: var(--accent-2); color: var(--ink);
-      border-color: var(--ink);
-    }
-    .feedback button.is-active.dislike {
-      background: var(--accent-1); color: #fff;
-      border-color: var(--ink);
-    }
-    .feedback button[disabled] { opacity: 0.5; cursor: wait; }
-    .feedback .pulse { animation: fbpulse 360ms ease; }
-    @keyframes fbpulse { 0%{transform:scale(1);} 50%{transform:scale(1.18);} 100%{transform:scale(1);} }
-
-    /* ============ CLAUDIO BOOTH — pixel character ============ */
-    /* ============ Booth (pixel-art background image) ============ */
-    .booth {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
-      z-index: 1;
-      border-radius: inherit;
-      overflow: hidden;
-      background: #14181F url('/booth-bg-night.png') no-repeat center / cover;
       image-rendering: pixelated;
-      image-rendering: crisp-edges;
-      transition: background-image 1200ms ease-in-out;
-    }
-    .booth[data-time="day"]    { background-image: url('/booth-bg-day.png'); }
-    .booth[data-time="night"]  { background-image: url('/booth-bg-night.png'); }
-    /* During the day, the warm spotlight in the room shifts; lift the warm
-       overlay slightly to match the lit windows */
-    .booth[data-time="day"]::before {
-      content: ''; position: absolute; inset: 0;
-      background: radial-gradient(ellipse at 50% 60%, rgba(255, 230, 180, 0.10) 0%, transparent 50%);
+      z-index: 3;
+      opacity: 0; transition: opacity 600ms ease;
       pointer-events: none;
-      z-index: 2;
+      mask-image: linear-gradient(180deg, #000 74%, transparent 100%);
+      -webkit-mask-image: linear-gradient(180deg, #000 74%, transparent 100%);
     }
+    .cover .ai-cover.show { opacity: 1; }
 
-    /* —— Claudio eye blink (skin-tone covers the eyes briefly) —— */
-    .booth .eye {
-      position: absolute;
-      width: 5.0%; height: 1.6%;
-      background: #FFCBA4;
-      opacity: 0;
-      pointer-events: none;
-      z-index: 5;
-    }
-    .booth .eye-l { top: 61.0%; left: 36.4%; }
-    .booth .eye-r { top: 61.0%; left: 50.4%; }
-    .booth.blinking .eye {
-      animation: eye-blink 5.2s ease-in-out infinite;
-    }
-    @keyframes eye-blink {
-      0%, 92%, 100% { opacity: 0; }
-      94%, 97%      { opacity: 1; }
-    }
-
-      51%, 100% { opacity: 1; }
-    }
-
-    /* —— ON AIR red glow that pulses when DJ is talking —— */
-    .booth .on-air-glow {
-      position: absolute;
-      top: 2.5%; left: 4.5%;
-      width: 24%; height: 8.5%;
-      background: radial-gradient(ellipse, rgba(255, 80, 60, 0.65) 0%, transparent 70%);
-      opacity: 0;
-      pointer-events: none;
-      mix-blend-mode: screen;
+    /* —— DJ dialogue box, RPG style —— */
+    .cover .dj-box {
+      position: absolute; left: 4%; right: 4%; bottom: 6%;
       z-index: 4;
+      background: var(--paper); color: var(--ink);
+      border: 2px solid var(--ink);
+      box-shadow: 3px 3px 0 rgba(26,46,58,0.8);
+      border-radius: 4px;
+      padding: 8px 12px 12px;
+      font-family: 'Zpix', 'DotGothic16', monospace;
+      font-size: 12px; line-height: 1.55;
+      max-height: 52%; overflow: hidden;
     }
-    .booth.on-air .on-air-glow {
-      animation: on-air-pulse 1.1s ease-in-out infinite;
+    .cover .dj-box::before {
+      content: '老 C';
+      display: inline-block;
+      font-family: 'Press Start 2P', 'Zpix', monospace;
+      font-size: 8px; letter-spacing: 0.2em;
+      background: var(--ink); color: var(--sand);
+      padding: 2px 6px; border-radius: 3px;
+      margin: 0 6px 2px 0; vertical-align: middle;
     }
-    @keyframes on-air-pulse {
-      0%, 100% { opacity: 0.85; }
-      50%      { opacity: 0.15; }
+    .cover .dj-box::after {
+      content: '▼';
+      position: absolute; right: 7px; bottom: 3px;
+      font-size: 8px; color: var(--accent-1);
+      animation: blink 1s steps(2) infinite;
     }
 
-      72%           { transform: rotate(-26deg); }
-      82%           { transform: rotate(14deg); }
-      92%           { transform: rotate(-6deg); }
-    }
-
-    /* —— Cat eye blink —— */
-    .booth .cat-eye {
-      position: absolute;
-      width: 1.6%; height: 1.4%;
-      background: #6B3815; /* darker orange-brown to match cat fur */
-      opacity: 0;
+    /* —— CRT scanlines, very light —— */
+    .cover .scanlines {
+      position: absolute; inset: 0; z-index: 6;
       pointer-events: none;
-      z-index: 5;
-    }
-    .booth .cat-eye-l { top: 78.5%; left: 8.0%; }
-    .booth .cat-eye-r { top: 78.5%; left: 11.0%; }
-    .booth .cat-eye {
-      animation: cat-blink 7.3s ease infinite;
-    }
-    @keyframes cat-blink {
-      0%, 92%, 100% { opacity: 0; }
-      94%, 97%      { opacity: 1; }
-    }
-
-    /* —— Day/night context: hide night-only highlights when day is active —— */
-    .booth[data-time="day"] .star,
-    .booth[data-time="day"] .city-light { display: none; }
-
-    /* —— Star twinkle in window —— */
-    .booth .star {
-      position: absolute;
-      width: 0.9%; aspect-ratio: 1;
-      background: #FFFFFF;
-      border-radius: 50%;
-      box-shadow: 0 0 4px rgba(255,255,255,0.6);
-      animation: twinkle 3s ease-in-out infinite;
-      pointer-events: none;
-      z-index: 4;
-    }
-    .booth .s1 { top: 6.5%;  left: 64%; animation-delay: 0s;   }
-    .booth .s2 { top: 11%;   left: 76%; animation-delay: 1.0s; }
-    .booth .s3 { top: 8%;    left: 84%; animation-delay: 2.0s; }
-    .booth .s4 { top: 13.5%; left: 70%; animation-delay: 1.6s; }
-    @keyframes twinkle {
-      0%, 100% { opacity: 0.25; }
-      50%      { opacity: 1; }
-    }
-
-    /* —— City window lights flicker —— */
-    .booth .city-light {
-      position: absolute;
-      width: 0.9%; aspect-ratio: 1;
-      background: #FFD060;
-      box-shadow: 0 0 3px rgba(255, 220, 130, 0.7);
-      pointer-events: none;
-      z-index: 4;
-    }
-    .booth .cl1 { top: 21%; left: 56%; animation: city-flicker 3.8s ease infinite; animation-delay: 0.4s; }
-    .booth .cl2 { top: 24%; left: 71%; animation: city-flicker 5.0s ease infinite; animation-delay: 1.6s; }
-    .booth .cl3 { top: 19%; left: 82%; animation: city-flicker 4.2s ease infinite; animation-delay: 3.0s; }
-    .booth .cl4 { top: 27%; left: 64%; animation: city-flicker 6.0s ease infinite; animation-delay: 2.2s; }
-    @keyframes city-flicker {
-      0%, 88%, 100% { opacity: 1; }
-      90%, 94%      { opacity: 0.25; }
-    }
-
-    /* —— BEAT MODE LCD soft glow pulse —— */
-    .booth .beat-glow {
-      position: absolute;
-      top: 59%; left: 78%;
-      width: 16%; height: 13%;
-      background: radial-gradient(ellipse, rgba(60, 220, 90, 0.45) 0%, transparent 75%);
-      pointer-events: none;
-      mix-blend-mode: screen;
-      z-index: 4;
-      animation: beat-pulse 2.4s ease-in-out infinite;
-    }
-    @keyframes beat-pulse {
-      0%, 100% { opacity: 0.5; }
-      50%      { opacity: 1;   }
+      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.14) 0 1px, transparent 1px 3px);
+      mix-blend-mode: multiply;
     }
 
     /* ============ HEART RAIN OVERLAY ============ */
@@ -431,24 +469,17 @@
     }
     .mail-list .empty { opacity: 0.55; font-size: 11px; text-align: center; padding: 6px 0; }
 
-    /* ============ COVER ART (canvas) ============
-       Slightly smaller than before: the booth is a window into 老 C 的房間,
-       not a full-bleed poster — smaller frame reads more like "a room you
-       glance at" and frees vertical space for the interaction area below.
-       Overlays (eyes / stars / glows) use % coords of this box, so scaling
-       the container keeps them aligned. */
+    /* ============ THE SCREEN (was .cover) ============
+       10:9 like the real GBC LCD. Hearts canvas + reaction bar live here. */
     .cover {
-      width: 100%; aspect-ratio: 1;
-      max-width: 340px; margin: 0 auto 12px;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 10px 30px var(--shadow), 0 1px 0 rgba(255,255,255,0.7) inset;
       position: relative;
-      background: var(--paper);
+      width: 100%; aspect-ratio: 10 / 9;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 2px solid rgba(255,245,225,0.12);
+      cursor: pointer;
       font-size: 0;
-    }
-    .cover #pacman {
-      width: 100%; height: 100%; display: block;
+      image-rendering: pixelated;
     }
 
     /* ============ NOW PLAYING (album-cover typography) ============ */
@@ -501,24 +532,6 @@
       font-size: 10px; letter-spacing: 0.2em;
       color: var(--ink); opacity: 0.4;
     }
-
-    /* ============ CONTROLS ============ */
-    .controls {
-      display: flex; justify-content: center; gap: 14px; margin: 18px 0;
-    }
-    .controls button {
-      appearance: none; cursor: pointer;
-      font-family: 'Press Start 2P', 'Zpix', monospace;
-      font-weight: 400; font-size: 12px;
-      letter-spacing: 0.3em; text-transform: uppercase;
-      padding: 12px 28px; min-width: 130px;
-      background: var(--ink); color: var(--sand);
-      border: 0; border-radius: 999px;
-      box-shadow: 0 4px 12px var(--shadow);
-      transition: transform 100ms, background 200ms;
-    }
-    .controls button:hover { background: var(--accent-1); }
-    .controls button:active { transform: scale(0.97); }
 
     /* ============ CHAT ============ */
     .chat { display: flex; gap: 10px; margin: 18px 0; align-items: stretch; }
@@ -738,15 +751,19 @@
       .clockstrip { font-size: 9px; gap: 8px; margin-bottom: 10px; }
       .clockstrip .time { font-size: 14px; }
 
-      /* Not full-bleed on phones: leaves breathing room and pulls the
-         now-playing + DJ.MSG + mail interaction area up into the first screen. */
-      .cover { max-width: 78%; }
+      /* Console not full-bleed on phones: reads as a handheld you hold. */
+      .gbc { max-width: 88%; padding: 8px 12px 18px; }
+      .gbc-controls { min-height: 76px; margin-top: 14px; }
+      .ab button { width: 48px; height: 48px; font-size: 13px; }
+      .dpad { width: 68px; height: 68px; }
+      .dpad .h { top: 24px; height: 20px; }
+      .dpad .v { left: 24px; width: 20px; }
+      .dpad::after { left: 28px; top: 28px; }
+      .cover .dj-box { font-size: 11px; }
 
       .now .title { font-size: 13px; }
       .now .artist { font-size: 11px; letter-spacing: 0.18em; }
 
-      .feedback { gap: 10px; margin-bottom: 14px; }
-      .feedback button { padding: 8px 12px; font-size: 9px; min-width: 80px; letter-spacing: 0.14em; }
 
       .dj-line { padding: 16px 14px 12px; font-size: 12px; min-height: 50px; }
 
@@ -770,9 +787,6 @@
       footer.ticker { font-size: 9px; padding: 6px 12px; gap: 8px; }
       footer.ticker .right { display: none; }
 
-      /* Booth: simplify so Claudio stays the focal point */
-      .booth-onair { font-size: 8px; padding: 4px 8px; }
-      .booth-onair .dot { width: 5px; height: 5px; margin-right: 3px; }      .booth-bubble { font-size: 9px; padding: 6px 8px; max-height: 5em; -webkit-line-clamp: 3; }
 
       /* Reaction bar bigger touch target */
       .cover .reaction-bar { gap: 4px; padding: 6px 8px; bottom: 8px; }
@@ -859,51 +873,59 @@
         <span class="city" id="clock-city">—</span>
       </div>
 
-      <div class="cover" id="cover">
-        <div class="booth blinking" id="booth" data-time="night">
-          <div class="booth-bubble" id="booth-bubble" hidden>—</div>
+      <div class="gbc" id="gbc">
+        <div class="gbc-top">
+          <span>AIRADIO·FM</span>
+          <span>CGB-24/7</span>
+        </div>
 
-          <!-- Animated overlays sitting on top of booth-bg.png -->
-          <div class="on-air-glow"></div>
-          <div class="eye eye-l"></div>
-          <div class="eye eye-r"></div>
-          <div class="cat-eye cat-eye-l"></div>
-          <div class="cat-eye cat-eye-r"></div>
-          <div class="star s1"></div>
-          <div class="star s2"></div>
-          <div class="star s3"></div>
-          <div class="star s4"></div>
-          <div class="city-light cl1"></div>
-          <div class="city-light cl2"></div>
-          <div class="city-light cl3"></div>
-          <div class="city-light cl4"></div>
-          <div class="beat-glow"></div>
+        <div class="bezel">
+          <div class="led-row"><span class="led" id="gbc-led"></span> ON AIR</div>
+          <div class="cover" id="cover" data-time="night">
+            <div class="eq" aria-hidden="true">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
+            <img class="ai-cover" id="ai-cover" alt="" />
+            <div class="dj-box" id="dj-box" hidden></div>
+            <div class="scanlines"></div>
+            <canvas id="hearts" width="480" height="480"></canvas>
+            <div class="reaction-bar" id="reaction-bar">
+              <button data-emoji="💖" type="button" aria-label="love">💖</button>
+              <button data-emoji="🔥" type="button" aria-label="fire">🔥</button>
+              <button data-emoji="🌊" type="button" aria-label="wave">🌊</button>
+              <button data-emoji="😴" type="button" aria-label="sleep">😴</button>
+              <button data-emoji="🌙" type="button" aria-label="moon">🌙</button>
+              <button data-emoji="☀️" type="button" aria-label="sun">☀️</button>
+              <button data-emoji="🎵" type="button" aria-label="music">🎵</button>
+            </div>
+            <div class="tap-hint">▼ TAP TO REACT</div>
+          </div>
+          <div class="bezel-label">AIRADIO <b class="c1">C</b><b class="c2">O</b><b class="c3">L</b><b class="c4">O</b><b class="c5">R</b></div>
         </div>
-        <canvas id="hearts" width="480" height="480"></canvas>
-        <div class="reaction-bar" id="reaction-bar">
-          <button data-emoji="💖" type="button" aria-label="love">💖</button>
-          <button data-emoji="🔥" type="button" aria-label="fire">🔥</button>
-          <button data-emoji="🌊" type="button" aria-label="wave">🌊</button>
-          <button data-emoji="😴" type="button" aria-label="sleep">😴</button>
-          <button data-emoji="🌙" type="button" aria-label="moon">🌙</button>
-          <button data-emoji="☀️" type="button" aria-label="sun">☀️</button>
-          <button data-emoji="🎵" type="button" aria-label="music">🎵</button>
+
+        <div class="gbc-controls">
+          <div class="dpad">
+            <span class="h"></span><span class="v"></span>
+            <button class="dp-left"  id="dpad-left"  type="button" aria-label="volume down"></button>
+            <button class="dp-right" id="dpad-right" type="button" aria-label="volume up"></button>
+          </div>
+          <div class="ab" id="feedback">
+            <button id="btn-dislike" class="b" type="button" aria-label="Dislike this track">B<span class="count" id="dislike-count">0</span><span class="tag">NOPE</span></button>
+            <button id="btn-like" class="a" type="button" aria-label="Like this track">A<span class="count" id="like-count">0</span><span class="tag">LIKE</span></button>
+          </div>
         </div>
-        <div class="tap-hint">▼ TAP TO REACT</div>
+
+        <div class="gbc-ss">
+          <button id="btn-mail"   type="button">SELECT·✉</button>
+          <button id="btn-toggle" type="button">START·♪</button>
+        </div>
+
+        <div class="gbc-speaker"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       </div>
+
       <div class="now">
         <div class="title" id="now-title">—</div>
         <div class="artist" id="now-artist"></div>
-      </div>
-      <div class="feedback" id="feedback" hidden>
-        <button id="btn-like" class="like" type="button" aria-label="Like this track">
-          <span class="emoji">▲ LIKE</span>
-          <span class="count" id="like-count">0</span>
-        </button>
-        <button id="btn-dislike" class="dislike" type="button" aria-label="Dislike this track">
-          <span class="emoji">▼ NOPE</span>
-          <span class="count" id="dislike-count">0</span>
-        </button>
       </div>
       <div class="dj-line" id="dj-line"></div>
       <div class="chat">
@@ -915,9 +937,6 @@
         <h4>📮 LISTENER MAIL</h4>
         <div id="mail-list-body"><div class="empty">還沒有來信。第一封就由你寫。</div></div>
       </section>
-      <div class="controls">
-        <button id="btn-toggle">♪ Live</button>
-      </div>
       <div class="queue">
         <h3>Up Next</h3>
         <div id="queue-list"></div>

@@ -70,82 +70,68 @@ function tryPlay() {
   });
 }
 
-// ---------- Claudio Booth ----------
-const coverEl = $('cover');
-const boothEl = $('booth');
-const boothBubble = $('booth-bubble');
+// ---------- GBC console ----------
+const coverEl = $('cover');       // the LCD screen inside the bezel
+const gbcEl = $('gbc');           // the whole console shell
+const djBox = $('dj-box');        // RPG dialogue box on screen
+const aiCoverEl = $('ai-cover');  // per-track AI cover img on screen
 
-const DEFAULT_LABEL = '/icon-512.png';
-
-// Cover frame was removed from the booth (it's baked into booth-bg-*.png
-// now). setCover is kept as a no-op + last-music-cover memory so the
-// Media Session metadata path keeps a live URL for the lock-screen.
+// Per-track AI cover on the screen. Falls back to the sky + equalizer
+// backdrop when a track has no cover.
 let _lastMusicCover = null;
 function setCover(url) {
   if (url) _lastMusicCover = url;
+  if (!aiCoverEl) return;
+  if (url) {
+    if (aiCoverEl.getAttribute('src') !== url) {
+      aiCoverEl.classList.remove('show');
+      aiCoverEl.src = url;
+    } else {
+      aiCoverEl.classList.add('show');
+    }
+  } else {
+    aiCoverEl.classList.remove('show');
+    aiCoverEl.removeAttribute('src');
+  }
+}
+if (aiCoverEl) {
+  aiCoverEl.addEventListener('load',  () => aiCoverEl.classList.add('show'));
+  aiCoverEl.addEventListener('error', () => { aiCoverEl.classList.remove('show'); aiCoverEl.removeAttribute('src'); });
 }
 
-// Mood = how Claudio is behaving right now. DJ talking → talking + tally light.
-// Music playing (and not muted) → bobs to beat. Otherwise just blinks idly.
+// Console state: DJ talking → ON AIR LED pulses + dialogue box on screen.
 function setStage(item) {
-  if (!boothEl) return;
   const isDj = !!(item && item.kind === 'dj');
-
-  // State classes drive the CSS overlay animations on the booth-bg image.
-  boothEl.classList.toggle('on-air', isDj);
-  boothEl.classList.toggle('talking', isDj);
-  boothEl.classList.add('blinking');
-
-  // Speech bubble above Claudio with whatever she's saying right now.
-  if (boothBubble) {
-    if (isDj && item.say) {
-      const txt = String(item.say).slice(0, 80);
-      boothBubble.textContent = txt + (item.say.length > 80 ? '…' : '');
-      boothBubble.dataset.show = '1';
-      boothBubble.hidden = false;
+  if (gbcEl) gbcEl.classList.toggle('on-air', isDj);
+  if (djBox) {
+    if (isDj && item.say && String(item.say).trim()) {
+      djBox.textContent = String(item.say);
+      djBox.hidden = false;
     } else {
-      boothBubble.dataset.show = '0';
-      // small delay so the fade-out plays
-      setTimeout(() => { if (boothBubble.dataset.show === '0') boothBubble.hidden = true; }, 280);
+      djBox.hidden = true;
     }
   }
-
-  // If DJ is replying to letters, re-render so the matching pinned ones glow.
-  if (isDj && Array.isArray(item.repliedTo) && item.repliedTo.length) {
-    refreshPinLetters(item.repliedTo);
-  } else {
-    refreshPinLetters([]);
-  }
 }
 
-// Day/night booth background. 5–19 → day art, 19–5 → night art.
-// data-time attribute drives a CSS swap of /booth-bg-{day,night}.png.
-function refreshBoothTime() {
-  if (!boothEl) return;
+// Equalizer dances only while something is audibly playing.
+function syncScreenPlaying() {
+  const audible = !audio.paused && !audio.muted;
+  if (coverEl) coverEl.classList.toggle('playing', audible);
+  if (gbcEl) gbcEl.classList.toggle('playing', audible);
+}
+audio.addEventListener('play',  syncScreenPlaying);
+audio.addEventListener('pause', syncScreenPlaying);
+audio.addEventListener('volumechange', syncScreenPlaying);
+
+// Day/night screen backdrop. 5–19 → Nagai day sky, 19–5 → night city sky.
+function refreshScreenTime() {
+  if (!coverEl) return;
   const h = new Date().getHours();
   const mode = (h >= 5 && h < 19) ? 'day' : 'night';
-  if (boothEl.dataset.time !== mode) boothEl.dataset.time = mode;
+  if (coverEl.dataset.time !== mode) coverEl.dataset.time = mode;
 }
-refreshBoothTime();
-setInterval(refreshBoothTime, 5 * 60 * 1000);
-
-let _pinLettersCache = [];
-async function refreshPinLetters(highlightIds = []) {
-  return; // pin letters element no longer in the booth
-  try {
-    const r = await fetch('/api/mail/recent?limit=3');
-    if (!r.ok) return;
-    const j = await r.json();
-    _pinLettersCache = j.letters || [];
-  } catch (_) { /* keep cached */ }
-  renderPinLetters(highlightIds);
-}
-function renderPinLetters(_highlightIds = []) {
-  // pin letters element no longer in the booth — kept as a no-op
-  return;
-}
-
-refreshPinLetters();
+refreshScreenTime();
+setInterval(refreshScreenTime, 5 * 60 * 1000);
 
 // ---------- Now playing ----------
 function setNow(item) {
@@ -253,10 +239,10 @@ function renderFeedback() {
 
 async function showFeedback(item) {
   if (!fbWrap || !item || !item.songId) {
-    if (fbWrap) fbWrap.hidden = true;
+    if (fbWrap) fbWrap.classList.add('inactive');
     return;
   }
-  fbWrap.hidden = false;
+  fbWrap.classList.remove('inactive');
   fbState = { trackId: item.songId, mine: null, likes: 0, dislikes: 0 };
   renderFeedback();
   try {
@@ -324,7 +310,24 @@ function showToast(text) {
 // ---------- Mute toggle ----------
 $('btn-toggle').addEventListener('click', () => {
   audio.muted = !audio.muted;
-  $('btn-toggle').textContent = audio.muted ? '[X] MUTED' : '[♪] LIVE';
+  $('btn-toggle').textContent = audio.muted ? 'START·✕' : 'START·♪';
+  syncScreenPlaying();
+});
+
+// ---------- GBC hardware: D-pad volume, SELECT -> mailbox ----------
+$('dpad-left')?.addEventListener('click', () => {
+  audio.volume = Math.max(0, Math.round((audio.volume - 0.1) * 10) / 10);
+  showToast('VOL ◀ ' + Math.round(audio.volume * 10) + '/10');
+});
+$('dpad-right')?.addEventListener('click', () => {
+  audio.volume = Math.min(1, Math.round((audio.volume + 0.1) * 10) / 10);
+  showToast('VOL ▶ ' + Math.round(audio.volume * 10) + '/10');
+});
+$('btn-mail')?.addEventListener('click', () => {
+  const inp = $('chat-input');
+  if (!inp) return;
+  inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => inp.focus(), 350);
 });
 
 // ---------- Chat ----------
@@ -383,8 +386,8 @@ function handleEvent(msg) {
     case 'dj-saying': if (payload.say && payload.say.trim()) $('dj-line').textContent = payload.say; break;
     case 'plan-updated': console.log('plan updated'); break;
     case 'cmd':
-      if (payload.action === 'pause')  { audio.pause(); $('btn-toggle').textContent = '▶︎'; }
-      if (payload.action === 'resume') { tryPlay(); $('btn-toggle').textContent = '⏸'; }
+      if (payload.action === 'pause')  { audio.pause(); }
+      if (payload.action === 'resume') { tryPlay(); }
       break;
     case 'hello': status.textContent = `connected · ${new Date(payload.ts).toLocaleTimeString()}`; break;
     case 'reaction': spawnHeart(payload); break;
@@ -576,15 +579,6 @@ audio.addEventListener('ended', () => {
 });
 
 bootstrap();
-
-// Periodic refresh: keep pinned letters fresh even between events.
-setInterval(() => {
-  if (currentItem && currentItem.kind === 'dj' && currentItem.repliedTo?.length) {
-    refreshPinLetters(currentItem.repliedTo);
-  } else {
-    refreshPinLetters([]);
-  }
-}, 25 * 1000);
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
