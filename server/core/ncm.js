@@ -124,7 +124,12 @@ function matchSunoByQuery(keywords) {
   const lib = loadSuno();
   if (!lib.length) return null;
 
-  const recentIds = _recentlyPlayedSet(20);
+  // Anti-repeat window scales with the library: a third of it, capped at 80,
+  // floored at 20 (the old fixed value, safe for tiny libraries). At 240
+  // tracks that's an 80-song no-repeat stretch ≈ 3-4 hours of listening.
+  const windowSize = Number(process.env.SUNO_NOREPEAT_WINDOW)
+    || Math.max(20, Math.min(80, Math.floor(lib.length / 3)));
+  const recentIds = _recentlyPlayedSet(windowSize);
   // Filter out tracks that are still in the recent-played window. If that
   // would empty the pool (small library), fall back to the full library.
   const fresh = lib.filter(c => !recentIds.has('suno:' + c.id));
