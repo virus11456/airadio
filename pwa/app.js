@@ -310,7 +310,7 @@ function showToast(text) {
 // ---------- Mute toggle ----------
 $('btn-toggle').addEventListener('click', () => {
   audio.muted = !audio.muted;
-  $('btn-toggle').textContent = audio.muted ? 'START·✕' : 'START·♪';
+  $('btn-toggle').textContent = audio.muted ? '✕ MUTED' : '♪ LIVE';
   syncScreenPlaying();
 });
 
