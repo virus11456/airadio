@@ -136,7 +136,7 @@ async function refill(hint = '') {
       .filter(m => m && m.role === 'fan')
       .map(m => ({ id: m.id, sender: (m.sender || 'anon').slice(0, 8), content: m.content || '', ts: m.ts }));
 
-    queue.push({
+    const djItem = {
       kind: 'dj',
       say: plan.say,
       src: ttsPath,
@@ -144,7 +144,11 @@ async function refill(hint = '') {
       reason: plan.reason,
       repliedTo: toMark,
       repliedToLetters,
-    });
+    };
+    // Letter replies jump the queue: airing right after the current track
+    // makes the listener feel heard. Regular banter keeps its place.
+    if (toMark.length) queue.unshift(djItem);
+    else queue.push(djItem);
     publish(events.DJ_SAYING, { say: plan.say, src: ttsPath, repliedTo: toMark, repliedToLetters });
   }
 
@@ -216,6 +220,21 @@ function maybeRefillAsync(hint = '') {
 // Refill threshold — kick off async refill when 1 item or fewer remain so
 // the LLM call overlaps the currently playing track instead of blocking.
 const REFILL_AT = Math.max(LOW_WATER, 1);
+
+// A fresh listener letter forces a refill immediately (bypassing the
+// queue-length check) so the on-air reply lands within about one track.
+// 45s cooldown batches rapid-fire letters into a single LLM call.
+let _lastLetterRefill = 0;
+export function requestLetterReply() {
+  const now = Date.now();
+  if (now - _lastLetterRefill < 45_000) return;
+  if (_refilling) return;
+  _lastLetterRefill = now;
+  _refilling = true;
+  refill('有聽眾剛剛來信。請在這一段優先回覆來信（JSON 記得帶 replied_to），然後照常排歌。')
+    .catch(e => console.error('[dj] letter-reply refill failed:', e?.message || e))
+    .finally(() => { _refilling = false; });
+}
 
 export async function djLoop() {
   console.log('[dj] loop started');

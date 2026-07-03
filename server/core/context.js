@@ -146,10 +146,15 @@ export async function buildContext(userInput, opts = {}) {
 
     // Hard-coded prefix in user message so M2 cannot ignore time/weather.
   const tzNowStr = now.toLocaleString('zh-TW', { timeZone: process.env.TZ || 'Asia/Taipei', hour12: false });
+  // Fan letters ALSO go in the user message: M2-family models routinely
+  // ignore the system prompt, and a letter buried there never gets replied.
+  const lettersCtx = pendingFanIds.length
+    ? `\n[聽眾來信，等你回覆]\n${fanLettersBlock}\n請務必在 say 裡口語回覆其中 1-2 封（例：「剛收到 #${pendingFanIds[0]} 號聽眾來信說⋯」，轉述不要照抄），並在 JSON 裡加 "replied_to":[${pendingFanIds[0]}] 這樣的欄位。\n`
+    : '';
   const hardCtx = `[現在實際狀態]
 時間：${tzNowStr} (${phase}, 星期${WEEKDAY_TW[now.getDay()]})
 天氣：${weather}
-${vibe ? '氛圍：' + vibe + '\n' : ''}${festival ? '節日：' + festival + '\n' : ''}${nowPlaying ? nowPlaying + '\n' : ''}
+${vibe ? '氛圍：' + vibe + '\n' : ''}${festival ? '節日：' + festival + '\n' : ''}${nowPlaying ? nowPlaying + '\n' : ''}${lettersCtx}
 [你的任務]
 ${input}
 

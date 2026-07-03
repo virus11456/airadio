@@ -34,6 +34,7 @@ export default async function chatRoutes(fastify) {
         // Music request: still a fan signal but tagged so DJ understands intent.
         state.recordMessage('fan', `[點歌] ${r.query}`, sender);
         publish(events.USER_MESSAGE, { text: `[點歌] ${r.query}`, sender, kind: 'music' });
+        dj.requestLetterReply();
         return { ok: true, kind: 'music', query: r.query };
 
       case 'claude':
@@ -41,6 +42,7 @@ export default async function chatRoutes(fastify) {
         // Free-form letter to the DJ.
         state.recordMessage('fan', text, sender);
         publish(events.USER_MESSAGE, { text, sender, kind: 'letter' });
+        dj.requestLetterReply();
         return { ok: true, kind: 'letter' };
     }
   });
