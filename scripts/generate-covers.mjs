@@ -28,7 +28,10 @@ const argv = process.argv.slice(2);
 const FORCE = argv.includes('--force');
 const QUIET = argv.includes('--quiet');
 const MAX = (() => { const i = argv.indexOf('--max'); return i >= 0 ? Number(argv[i + 1]) : Infinity; })();
-const CONC = (() => { const i = argv.indexOf('--concurrency'); return i >= 0 ? Math.max(1, Number(argv[i + 1])) : 2; })();
+const CONC = (() => { const i = argv.indexOf('--concurrency'); return i >= 0 ? Math.max(1, Number(argv[i + 1])) : 1; })();
+// Pause between requests — pollinations rate-limits per IP; a steady drip
+// completes where a burst just farms 429s.
+const PACE_MS = Number(process.env.COVER_PACE_MS || 4000);
 
 function log(...a) { if (!QUIET) console.log('[covers]', ...a); }
 function warn(...a) { console.warn('[covers]', ...a); }
@@ -88,15 +91,28 @@ async function fetchCover(track, attempt = 1) {
   } finally { clearTimeout(t); }
 }
 
+let consecutiveFails = 0;
+const BREAKER_AT = Number(process.env.COVER_BREAKER || 6);
+let tripped = false;
+
 async function processTrack(track, idx, total) {
+  if (tripped) return { id: track.id, status: 'skip' };
   if (!FORCE && alreadyHas(track.id)) return { id: track.id, status: 'skip' };
   try {
     const buf = await fetchCover(track);
     fs.writeFileSync(coverPath(track.id), buf);
+    consecutiveFails = 0;
     log(`(${idx}/${total}) ok ${track.id} — ${(track.title || '').slice(0, 40)} (${(buf.length/1024).toFixed(1)} KB)`);
+    await sleep(PACE_MS);
     return { id: track.id, status: 'ok', bytes: buf.length };
   } catch (e) {
+    consecutiveFails++;
     warn(`(${idx}/${total}) fail ${track.id} — ${e.message}`);
+    if (consecutiveFails >= BREAKER_AT) {
+      tripped = true;
+      warn(`circuit breaker: ${BREAKER_AT} consecutive failures — IP is throttled, stopping this run (cron retries hourly)`);
+    }
+    await sleep(PACE_MS);
     return { id: track.id, status: 'fail', error: e.message };
   }
 }

@@ -76,27 +76,35 @@ const gbcEl = $('gbc');           // the whole console shell
 const djBox = $('dj-box');        // RPG dialogue box on screen
 const aiCoverEl = $('ai-cover');  // per-track AI cover img on screen
 
-// Per-track AI cover on the screen. Falls back to the sky + equalizer
-// backdrop when a track has no cover.
+// Per-track AI cover on the screen. Tracks whose AI cover hasn't been
+// generated yet (or 404s) show the branded pixel-sunset default instead of
+// a blank screen — at night the sky gradient alone reads as pure black.
+const DEFAULT_COVER = '/cover-default.png';
 let _lastMusicCover = null;
 function setCover(url) {
   if (url) _lastMusicCover = url;
   if (!aiCoverEl) return;
-  if (url) {
-    if (aiCoverEl.getAttribute('src') !== url) {
-      aiCoverEl.classList.remove('show');
-      aiCoverEl.src = url;
-    } else {
-      aiCoverEl.classList.add('show');
-    }
-  } else {
+  const effective = url || DEFAULT_COVER;
+  if (aiCoverEl.getAttribute('src') !== effective) {
     aiCoverEl.classList.remove('show');
-    aiCoverEl.removeAttribute('src');
+    aiCoverEl.src = effective;
+  } else {
+    aiCoverEl.classList.add('show');
   }
 }
 if (aiCoverEl) {
   aiCoverEl.addEventListener('load',  () => aiCoverEl.classList.add('show'));
-  aiCoverEl.addEventListener('error', () => { aiCoverEl.classList.remove('show'); aiCoverEl.removeAttribute('src'); });
+  aiCoverEl.addEventListener('error', () => {
+    // Broken per-track cover → swap to the default rather than going blank.
+    if (aiCoverEl.getAttribute('src') !== DEFAULT_COVER) {
+      aiCoverEl.src = DEFAULT_COVER;
+    } else {
+      aiCoverEl.classList.remove('show');
+      aiCoverEl.removeAttribute('src');
+    }
+  });
+  // Boot with the default so the screen is never empty pre-first-track.
+  setCover(null);
 }
 
 // Console state: DJ talking → ON AIR LED pulses + dialogue box on screen.
