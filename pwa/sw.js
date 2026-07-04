@@ -1,6 +1,6 @@
 // Minimal service worker — shell cache only. Audio is streamed from server,
 // not cached here (size + freshness).
-const CACHE = 'claudio-shell-v37';
+const CACHE = 'claudio-shell-v38';
 const SHELL = ['/', '/index.html', '/app.js', '/manifest.json'];
 
 self.addEventListener('install', (e) => {
@@ -41,8 +41,12 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     caches.match(e.request).then(cached =>
       cached || fetch(e.request).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+        // Cache successes only. Caching a 404 (cover not generated yet)
+        // froze that miss forever — the real art never showed up.
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+        }
         return res;
       }).catch(() => cached)
     )

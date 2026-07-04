@@ -67,8 +67,8 @@ await app.register(staticPlugin, {
   root: coversDir,
   prefix: '/covers/',
   decorateReply: false,
-  // Long cache: cover for a given track id never changes.
-  setHeaders: (res) => res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'),
+  // Covers CAN be regenerated (style changes), so no immutable/1y cache.
+  setHeaders: (res) => res.setHeader('Cache-Control', 'public, max-age=3600'),
 });
 app.log.info(`covers mounted at /covers/ (${fs.readdirSync(coversDir).length} files)`);
 
