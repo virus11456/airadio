@@ -157,6 +157,13 @@ function _readSunoLibrary() {
 
 export function localFallback({ recentPlays = [], hint = '' } = {}) {
   const lib = _readSunoLibrary();
+
+  // `hint` is an instruction FOR THE LLM ("請在這一段優先回覆來信（JSON 記得
+  // 帶 replied_to）..."), never broadcast copy. Echoing it raw once put that
+  // exact sentence on air through TTS. Map it to a canned, human line instead.
+  const fallbackSay = /來信|信/.test(hint)
+    ? '信收到了！腦袋這會兒有點塞車，先放兩首墊著，下一段唸你的信。'
+    : '先放兩首墊著，等大腦回神。';
   const seenIds = new Set(recentPlays.map(p => p.song_id));
   const pickFromSuno = (count) => {
     if (!lib.length) return [];
