@@ -122,7 +122,10 @@ if [[ "${SUNO_PRUNE:-1}" == "1" ]]; then
 fi
 
 # Generate covers for any new tracks.
-if [[ -f "${ROOT}/scripts/generate-covers.mjs" ]]; then
+if [[ -f "${ROOT}/scripts/generate-covers-pixel.py" ]] && command -v python3 >/dev/null; then
+  echo "[suno-sync] drawing pixel covers for new tracks"
+  python3 "${ROOT}/scripts/generate-covers-pixel.py" --quiet || echo "[suno-sync] pixel covers hit issues (non-fatal)"
+elif [[ -f "${ROOT}/scripts/generate-covers.mjs" ]]; then
   echo "[suno-sync] generating missing covers…"
   node "${ROOT}/scripts/generate-covers.mjs" --quiet || echo "[suno-sync] cover generation hit issues (non-fatal)"
 fi

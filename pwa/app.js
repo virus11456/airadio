@@ -189,8 +189,9 @@ function setNow(item) {
     showFeedback(item);
     if ('mediaSession' in navigator) {
       try {
+        const coverType = item.cover && item.cover.endsWith('.gif') ? 'image/gif' : 'image/jpeg';
         const artwork = item.cover
-          ? [{ src: item.cover, sizes: '768x768', type: 'image/jpeg' },
+          ? [{ src: item.cover, sizes: '448x448', type: coverType },
              { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }]
           : [{ src: '/icon-512.png', sizes: '512x512', type: 'image/png' }];
         navigator.mediaSession.metadata = new MediaMetadata({

@@ -89,11 +89,10 @@ function loadSuno() {
   } catch { return []; }
 }
 function coverFor(id) {
-  // Static check is cheap; use existsSync so a missing cover doesn't break playback.
+  // Animated pixel gif is the primary art; legacy pollinations jpg as fallback.
   try {
-    if (fs.existsSync(path.join(COVER_DIR_FS, id + '.jpg'))) {
-      return '/covers/' + id + '.jpg';
-    }
+    if (fs.existsSync(path.join(COVER_DIR_FS, id + '.gif'))) return '/covers/' + id + '.gif';
+    if (fs.existsSync(path.join(COVER_DIR_FS, id + '.jpg'))) return '/covers/' + id + '.jpg';
   } catch {}
   return null;
 }

@@ -11,6 +11,7 @@ data/state.db-shm
 cache/tts/*
 !cache/tts/.gitkeep
 cache/music/*
+cache/covers/*
 !cache/music/.gitkeep
 cache/suno-library/*
 !cache/suno-library/.gitkeep
