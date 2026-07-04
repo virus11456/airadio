@@ -187,7 +187,7 @@ export function localFallback({ recentPlays = [], hint = '' } = {}) {
   const sunoSeeds = pickFromSuno(2);
   if (sunoSeeds.length) {
     return {
-      say: hint ? `${hint}，先放兩首墊著。` : '先放兩首墊著，等大腦回神。',
+      say: fallbackSay,
       play: sunoSeeds,
       reason: 'fallback plan (LLM unreachable, Suno library random)',
       segue: '',
@@ -197,7 +197,7 @@ export function localFallback({ recentPlays = [], hint = '' } = {}) {
   // Last resort — broad tags that should match almost any track via Suno
   // tag scoring, plus a couple of NCM-friendly queries.
   return {
-    say: hint ? `${hint}，先放兩首墊著。` : '先放兩首墊著，等大腦回神。',
+    say: fallbackSay,
     play: [
       { query: 'city pop', reason: 'fallback verified-playable' },
       { query: 'kayokyoku', reason: 'fallback verified-playable' },
