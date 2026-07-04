@@ -253,7 +253,8 @@
        10:9 like the real GBC LCD. Hearts canvas + reaction bar live here. */
     .cover {
       position: relative;
-      width: 100%; aspect-ratio: 10 / 9;
+      width: 100%; aspect-ratio: 1 / 1;   /* match the square cover art exactly:
+        no crop → Safari's animated-GIF object-fit bug can't zoom frames */
       overflow: hidden;
       border-top: 2px solid rgba(255,245,225,0.12);
       cursor: pointer;
