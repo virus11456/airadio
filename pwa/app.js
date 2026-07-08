@@ -150,7 +150,8 @@ function updateTicker() {
   if (!tickerEl) return;
   const parts = [];
   if (currentItem && currentItem.kind === 'music' && currentItem.title) {
-    parts.push('♪ NOW PLAYING: ' + currentItem.title + (currentItem.artist ? ' — ' + currentItem.artist : ''));
+    const a = currentItem.artist && !/^suno$/i.test(currentItem.artist.trim()) ? ' — ' + currentItem.artist : '';
+    parts.push('♪ NOW PLAYING: ' + currentItem.title + a);
   }
   const nexts = _queueCache.filter(q => q.kind === 'music' && q.title).slice(0, 2).map(q => q.title);
   if (nexts.length) parts.push('NEXT ▸ ' + nexts.join(' / '));
@@ -184,7 +185,10 @@ function setNow(item) {
 
   if (item.kind === 'music') {
     $('now-title').textContent = item.title || '—';
-    $('now-artist').textContent = item.artist || '';
+    // Every library track is credited "Suno" — zero information, hide it.
+    // A real / distinct artist name still shows.
+    const artistLabel = (item.artist && !/^suno$/i.test(item.artist.trim())) ? item.artist : '';
+    $('now-artist').textContent = artistLabel;
     setCover(item.cover || null);
     showFeedback(item);
     if ('mediaSession' in navigator) {
@@ -196,7 +200,7 @@ function setNow(item) {
           : [{ src: '/icon-512.png', sizes: '512x512', type: 'image/png' }];
         navigator.mediaSession.metadata = new MediaMetadata({
           title: item.title || '',
-          artist: item.artist || '',
+          artist: artistLabel || 'AIRADIO.FM',
           album: 'AIRADIO.FM',
           artwork,
         });
@@ -256,7 +260,8 @@ function setQueue(queue) {
     const div = document.createElement('div');
     div.className = 'queue-item';
     const label = q.kind === 'dj' ? 'DJ' : '♪';
-    const text = q.kind === 'dj' ? (q.say || '').slice(0, 60) : `${q.title} — ${q.artist || ''}`;
+    const qa = q.artist && !/^suno$/i.test(String(q.artist).trim()) ? ` — ${q.artist}` : '';
+    const text = q.kind === 'dj' ? (q.say || '').slice(0, 60) : `${q.title}${qa}`;
     div.innerHTML = `<span class="kind">${label}</span><span>${escapeHtml(text)}</span>`;
     list.appendChild(div);
   }
