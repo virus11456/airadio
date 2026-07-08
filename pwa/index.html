@@ -39,10 +39,17 @@
       --shadow:     rgba(26,46,58,0.18);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
-      height: 100%;
+    /* html gets a solid deep-sea base: it's what iOS shows during rubber-band
+       overscroll, and what peeks out anywhere the body gradient doesn't reach. */
+    html { height: 100%; background: var(--sea-deep); }
+    /* body was height:100% — the gradient stopped at one viewport and pages
+       taller than a screen showed the repeat's pale-sky start as a "blank
+       white" band. min-height lets the gradient stretch the full page. */
+    body {
+      min-height: 100%;
       background:
         linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 38%, var(--sky-low) 60%, var(--sea-mid) 70%, var(--sea-deep) 100%);
+      background-repeat: no-repeat;
       color: var(--ink);
       font-family: 'Press Start 2P', 'Zpix', 'DotGothic16', monospace;
       font-weight: 400;
