@@ -18,6 +18,33 @@ function fmtDate(d) {
   return d.toISOString().slice(0, 10);
 }
 
+// A fresh random menu of REAL library tracks each refill. Without this the
+// LLM narrated real-world artists (韋禮安 / 9m88 / 孫燕姿) it cannot actually
+// play — fuzzy matching then silently substituted random Suno tracks, so the
+// on-air talk never matched what listeners heard.
+function pickLibraryMenu(n = 40) {
+  try {
+    const lib = JSON.parse(readSafe('user/suno-library.json') || '[]');
+    if (!Array.isArray(lib) || !lib.length) return '';
+    const recent = new Set(
+      (state.recentPlays(20) || []).map(p => String(p.song_id || '').replace(/^suno:/, ''))
+    );
+    const pool = lib.filter(t => !recent.has(t.id));
+    const src = pool.length >= 10 ? pool : lib;
+    const picks = [];
+    const used = new Set();
+    while (picks.length < Math.min(n, src.length)) {
+      const i = Math.floor(Math.random() * src.length);
+      if (used.has(i)) continue;
+      used.add(i);
+      const t = src[i];
+      const tags = String(t.tags || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 3).join(', ');
+      picks.push(`- ${t.title}${tags ? `（${tags}）` : ''}`);
+    }
+    return picks.join('\n');
+  } catch { return ''; }
+}
+
 const WEEKDAY_TW = ['日', '一', '二', '三', '四', '五', '六'];
 
 export async function buildContext(userInput, opts = {}) {
@@ -146,6 +173,13 @@ export async function buildContext(userInput, opts = {}) {
 
     // Hard-coded prefix in user message so M2 cannot ignore time/weather.
   const tzNowStr = now.toLocaleString('zh-TW', { timeZone: process.env.TZ || 'Asia/Taipei', hour12: false });
+  // Library menu goes in the USER message for the same reason as letters:
+  // the M2 family routinely ignores the system prompt.
+  const libraryMenu = pickLibraryMenu(40);
+  const menuCtx = libraryMenu
+    ? `\n[本段可選曲庫菜單]\n${libraryMenu}\n鐵律：play 裡的 query 必須逐字使用上面清單中的歌名；say 提到的歌名也只能來自清單。本台全部是自製曲庫，嚴禁宣稱正在播放任何真實歌手（例如韋禮安、孫燕姿、9m88、山下達郎）的歌；只能用「有○○的味道」這種比喻方式提到他們。\n`
+    : '';
+
   // Fan letters ALSO go in the user message: M2-family models routinely
   // ignore the system prompt, and a letter buried there never gets replied.
   const lettersCtx = pendingFanIds.length
@@ -154,7 +188,7 @@ export async function buildContext(userInput, opts = {}) {
   const hardCtx = `[現在實際狀態]
 時間：${tzNowStr} (${phase}, 星期${WEEKDAY_TW[now.getDay()]})
 天氣：${weather}
-${vibe ? '氛圍：' + vibe + '\n' : ''}${festival ? '節日：' + festival + '\n' : ''}${nowPlaying ? nowPlaying + '\n' : ''}${lettersCtx}
+${vibe ? '氛圍：' + vibe + '\n' : ''}${festival ? '節日：' + festival + '\n' : ''}${nowPlaying ? nowPlaying + '\n' : ''}${menuCtx}${lettersCtx}
 [你的任務]
 ${input}
 
